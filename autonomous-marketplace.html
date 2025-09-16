@@ -473,6 +473,211 @@
             background: #cbd5e0;
         }
 
+        /* Analytics Dashboard Styles */
+        .analytics-dashboard {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1001;
+        }
+
+        .analytics-content {
+            background: white;
+            border-radius: 12px;
+            width: 95%;
+            max-width: 1200px;
+            max-height: 95vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .analytics-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 24px;
+            border-bottom: 1px solid #e2e8f0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 12px 12px 0 0;
+        }
+
+        .analytics-header h2 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .analytics-body {
+            padding: 24px;
+        }
+
+        .analytics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        .analytics-card {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid #e2e8f0;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .analytics-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .analytics-card h3 {
+            margin: 0 0 16px 0;
+            color: #2d3748;
+            font-size: 18px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .metric-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #3182ce;
+            margin-bottom: 8px;
+        }
+
+        .metric-label {
+            color: #718096;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .metric-trend {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin-top: 8px;
+            font-size: 12px;
+        }
+
+        .trend-up {
+            color: #38a169;
+        }
+
+        .trend-down {
+            color: #e53e3e;
+        }
+
+        .analytics-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 16px;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .analytics-table th {
+            background: #f7fafc;
+            padding: 12px 16px;
+            text-align: left;
+            font-weight: 600;
+            color: #4a5568;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .analytics-table td {
+            padding: 12px 16px;
+            border-bottom: 1px solid #e2e8f0;
+            color: #2d3748;
+        }
+
+        .analytics-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .analytics-table tr:hover {
+            background: #f7fafc;
+        }
+
+        .severity-high {
+            color: #e53e3e;
+            font-weight: 600;
+        }
+
+        .severity-medium {
+            color: #d69e2e;
+            font-weight: 600;
+        }
+
+        .severity-low {
+            color: #38a169;
+            font-weight: 600;
+        }
+
+        .suggestion-item {
+            background: white;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border-left: 4px solid;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .suggestion-high {
+            border-left-color: #e53e3e;
+        }
+
+        .suggestion-medium {
+            border-left-color: #d69e2e;
+        }
+
+        .suggestion-low {
+            border-left-color: #38a169;
+        }
+
+        .analytics-tabs {
+            display: flex;
+            border-bottom: 1px solid #e2e8f0;
+            margin-bottom: 24px;
+        }
+
+        .analytics-tab {
+            padding: 12px 20px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+
+        .analytics-tab.active {
+            border-bottom-color: #3182ce;
+            color: #3182ce;
+        }
+
+        .analytics-tab:hover {
+            background: #f7fafc;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
         .app-content {
             padding: 16px;
             min-height: 200px;
@@ -541,6 +746,7 @@
                 <button onclick="AppManager.exportApps()" style="padding: 8px 16px; background: #6c757d; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.9em;">📤 Export Droplets</button>
                 <input type="file" id="importFile" accept=".json" style="display: none;" onchange="handleImport(this)">
                 <button onclick="document.getElementById('importFile').click()" style="padding: 8px 16px; background: #6c757d; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.9em;">📥 Import Droplets</button>
+                <button onclick="AIAnalyticsDashboard.show()" style="padding: 8px 16px; background: #17a2b8; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.9em;">📊 AI Analytics</button>
                 <button onclick="clearAllData()" style="padding: 8px 16px; background: #dc3545; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.9em;">🗑️ Clear All</button>
                 <button onclick="showApiKeyPrompt()" style="padding: 8px 16px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.9em;">🔑 Setup Gemini AI</button>
             </div>
@@ -660,6 +866,941 @@
                 }
             }
         };
+
+        /**
+         * AI API Tracking and Analysis System
+         * Monitors AI API interactions, tracks performance, and provides insights
+         */
+        class AIApiTracker {
+            static interactions = new Map(); // Stores all API interactions
+            static deviationPatterns = new Map(); // Tracks deviation patterns
+            static promptPerformance = new Map(); // Tracks prompt effectiveness
+            static isEnabled = true; // Toggle for tracking
+
+            /**
+             * Starts tracking an AI API request
+             * @param {string} requestId - Unique request identifier
+             * @param {Object} requestData - Request payload and metadata
+             */
+            static startTracking(requestId, requestData) {
+                if (!this.isEnabled) return;
+
+                const tracking = {
+                    id: requestId,
+                    timestamp: Date.now(),
+                    request: {
+                        prompt: requestData.prompt,
+                        userRequest: requestData.userRequest,
+                        model: requestData.model || 'gemini-2.0-flash',
+                        temperature: requestData.temperature || 0.7,
+                        maxTokens: requestData.maxTokens || 2048,
+                        promptLength: requestData.prompt?.length || 0,
+                        promptType: this.categorizePrompt(requestData.userRequest)
+                    },
+                    response: null,
+                    performance: {
+                        startTime: performance.now(),
+                        endTime: null,
+                        duration: null,
+                        success: false,
+                        errorType: null
+                    },
+                    analysis: {
+                        expectedType: this.detectExpectedResponseType(requestData.userRequest),
+                        actualType: null,
+                        deviation: null,
+                        quality: null,
+                        issues: []
+                    }
+                };
+
+                this.interactions.set(requestId, tracking);
+                return tracking;
+            }
+
+            /**
+             * Completes tracking for an AI API request
+             * @param {string} requestId - Request identifier
+             * @param {Object} responseData - Response data and metadata
+             * @param {boolean} success - Whether request was successful
+             * @param {string} error - Error message if failed
+             */
+            static completeTracking(requestId, responseData = null, success = false, error = null) {
+                if (!this.isEnabled || !this.interactions.has(requestId)) return;
+
+                const tracking = this.interactions.get(requestId);
+                tracking.performance.endTime = performance.now();
+                tracking.performance.duration = tracking.performance.endTime - tracking.performance.startTime;
+                tracking.performance.success = success;
+                tracking.performance.errorType = error;
+
+                if (success && responseData) {
+                    tracking.response = {
+                        text: responseData.text,
+                        tokens: responseData.tokens || null,
+                        model: responseData.model || 'unknown',
+                        timestamp: Date.now(),
+                        rawResponse: responseData.raw
+                    };
+
+                    // Analyze the response
+                    this.analyzeResponse(tracking);
+                } else {
+                    tracking.analysis.issues.push(error || 'Unknown error');
+                }
+
+                // Update performance metrics
+                this.updatePerformanceMetrics(tracking);
+
+                // Save to persistent storage
+                this.saveTrackingData();
+            }
+
+            /**
+             * Analyzes AI response for quality and deviation
+             * @param {Object} tracking - Tracking object
+             */
+            static analyzeResponse(tracking) {
+                const response = tracking.response.text;
+                const expectedType = tracking.analysis.expectedType;
+
+                // Detect actual response type
+                tracking.analysis.actualType = this.detectActualResponseType(response);
+
+                // Check for deviations
+                const deviation = this.detectDeviation(tracking);
+                tracking.analysis.deviation = deviation;
+
+                // Assess response quality
+                tracking.analysis.quality = this.assessResponseQuality(tracking);
+
+                // Detect common issues
+                tracking.analysis.issues = this.detectResponseIssues(response, expectedType);
+            }
+
+            /**
+             * Categorizes the type of prompt
+             * @param {string} userRequest - User's original request
+             * @returns {string} Prompt category
+             */
+            static categorizePrompt(userRequest) {
+                const request = userRequest.toLowerCase();
+                
+                if (request.includes('create') || request.includes('build') || request.includes('make')) {
+                    return 'creation';
+                } else if (request.includes('modify') || request.includes('edit') || request.includes('change')) {
+                    return 'modification';
+                } else if (request.includes('fix') || request.includes('debug') || request.includes('error')) {
+                    return 'debugging';
+                } else if (request.includes('help') || request.includes('how') || request.includes('what')) {
+                    return 'inquiry';
+                } else {
+                    return 'general';
+                }
+            }
+
+            /**
+             * Detects expected response type based on user request
+             * @param {string} userRequest - User's original request
+             * @returns {string} Expected response type
+             */
+            static detectExpectedResponseType(userRequest) {
+                const request = userRequest.toLowerCase();
+                
+                if (request.includes('calculator') || request.includes('math')) return 'calculator-app';
+                if (request.includes('notepad') || request.includes('text editor')) return 'text-editor-app';
+                if (request.includes('todo') || request.includes('task')) return 'todo-app';
+                if (request.includes('game') || request.includes('play')) return 'game-app';
+                if (request.includes('weather')) return 'weather-app';
+                if (request.includes('clock') || request.includes('timer')) return 'timer-app';
+                
+                return 'generic-app';
+            }
+
+            /**
+             * Detects actual response type from AI response
+             * @param {string} response - AI response text
+             * @returns {string} Detected response type
+             */
+            static detectActualResponseType(response) {
+                try {
+                    const jsonMatch = response.match(/\{[\s\S]*\}/);
+                    if (jsonMatch) {
+                        const parsed = JSON.parse(jsonMatch[0]);
+                        if (parsed.appData?.name) {
+                            const name = parsed.appData.name.toLowerCase();
+                            if (name.includes('calculator')) return 'calculator-app';
+                            if (name.includes('notepad') || name.includes('editor')) return 'text-editor-app';
+                            if (name.includes('todo') || name.includes('task')) return 'todo-app';
+                            if (name.includes('game')) return 'game-app';
+                            if (name.includes('weather')) return 'weather-app';
+                            if (name.includes('clock') || name.includes('timer')) return 'timer-app';
+                        }
+                        
+                        if (parsed.type === 'create') return 'creation-response';
+                        if (parsed.type === 'modify') return 'modification-response';
+                        if (parsed.type === 'general') return 'general-response';
+                    }
+                } catch (error) {
+                    return 'malformed-json';
+                }
+                
+                return 'unknown';
+            }
+
+            /**
+             * Detects deviation from expected response
+             * @param {Object} tracking - Tracking object
+             * @returns {Object} Deviation analysis
+             */
+            static detectDeviation(tracking) {
+                const expected = tracking.analysis.expectedType;
+                const actual = tracking.analysis.actualType;
+                
+                const deviation = {
+                    hasDeviation: expected !== actual && actual !== 'creation-response',
+                    severity: 'none',
+                    type: 'none',
+                    description: ''
+                };
+
+                if (deviation.hasDeviation) {
+                    deviation.severity = this.calculateDeviationSeverity(expected, actual);
+                    deviation.type = this.categorizeDeviation(expected, actual);
+                    deviation.description = `Expected ${expected}, got ${actual}`;
+                }
+
+                // Check for JSON parsing issues
+                if (actual === 'malformed-json') {
+                    deviation.hasDeviation = true;
+                    deviation.severity = 'high';
+                    deviation.type = 'format-error';
+                    deviation.description = 'Response contains malformed JSON';
+                }
+
+                return deviation;
+            }
+
+            /**
+             * Calculates severity of deviation
+             * @param {string} expected - Expected type
+             * @param {string} actual - Actual type
+             * @returns {string} Severity level
+             */
+            static calculateDeviationSeverity(expected, actual) {
+                if (actual === 'malformed-json' || actual === 'unknown') return 'high';
+                if (expected.includes('app') && !actual.includes('app')) return 'medium';
+                return 'low';
+            }
+
+            /**
+             * Categorizes type of deviation
+             * @param {string} expected - Expected type
+             * @param {string} actual - Actual type
+             * @returns {string} Deviation category
+             */
+            static categorizeDeviation(expected, actual) {
+                if (actual === 'malformed-json') return 'format-error';
+                if (actual === 'unknown') return 'type-mismatch';
+                if (expected.includes('app') && actual === 'general-response') return 'response-type-error';
+                return 'content-mismatch';
+            }
+
+            /**
+             * Assesses overall response quality
+             * @param {Object} tracking - Tracking object
+             * @returns {Object} Quality assessment
+             */
+            static assessResponseQuality(tracking) {
+                const quality = {
+                    score: 0,
+                    factors: [],
+                    rating: 'poor'
+                };
+
+                let score = 50; // Base score
+
+                // Response time factor
+                if (tracking.performance.duration < 3000) score += 10;
+                else if (tracking.performance.duration > 10000) score -= 15;
+
+                // Success factor
+                if (tracking.performance.success) score += 20;
+                else score -= 30;
+
+                // Deviation factor
+                if (!tracking.analysis.deviation.hasDeviation) score += 15;
+                else {
+                    if (tracking.analysis.deviation.severity === 'low') score -= 5;
+                    else if (tracking.analysis.deviation.severity === 'medium') score -= 10;
+                    else score -= 20;
+                }
+
+                // JSON validity
+                if (tracking.analysis.actualType !== 'malformed-json') score += 10;
+
+                // Response completeness
+                if (tracking.response?.text?.length > 100) score += 5;
+
+                quality.score = Math.max(0, Math.min(100, score));
+
+                if (quality.score >= 80) quality.rating = 'excellent';
+                else if (quality.score >= 60) quality.rating = 'good';
+                else if (quality.score >= 40) quality.rating = 'fair';
+                else quality.rating = 'poor';
+
+                return quality;
+            }
+
+            /**
+             * Detects common issues in responses
+             * @param {string} response - AI response
+             * @param {string} expectedType - Expected response type
+             * @returns {Array} List of detected issues
+             */
+            static detectResponseIssues(response, expectedType) {
+                const issues = [];
+
+                // Check for JSON format issues
+                try {
+                    JSON.parse(response.match(/\{[\s\S]*\}/)?.[0] || '{}');
+                } catch (error) {
+                    issues.push('Invalid JSON format');
+                }
+
+                // Check for missing required fields
+                if (!response.includes('"type"')) issues.push('Missing response type');
+                if (!response.includes('"message"')) issues.push('Missing message field');
+                if (expectedType.includes('app') && !response.includes('"appData"')) {
+                    issues.push('Missing appData for app creation');
+                }
+
+                // Check for incomplete code
+                if (response.includes('// TODO') || response.includes('// Add logic here')) {
+                    issues.push('Contains placeholder code');
+                }
+
+                // Check for unsafe code patterns
+                if (response.includes('eval(') || response.includes('document.write')) {
+                    issues.push('Contains unsafe code patterns');
+                }
+
+                return issues;
+            }
+
+            /**
+             * Updates performance metrics
+             * @param {Object} tracking - Tracking object
+             */
+            static updatePerformanceMetrics(tracking) {
+                const promptType = tracking.request.promptType;
+                
+                if (!this.promptPerformance.has(promptType)) {
+                    this.promptPerformance.set(promptType, {
+                        totalRequests: 0,
+                        successfulRequests: 0,
+                        averageResponseTime: 0,
+                        totalResponseTime: 0,
+                        qualityScores: [],
+                        commonIssues: new Map()
+                    });
+                }
+
+                const metrics = this.promptPerformance.get(promptType);
+                metrics.totalRequests++;
+                
+                if (tracking.performance.success) {
+                    metrics.successfulRequests++;
+                }
+
+                metrics.totalResponseTime += tracking.performance.duration;
+                metrics.averageResponseTime = metrics.totalResponseTime / metrics.totalRequests;
+
+                if (tracking.analysis.quality) {
+                    metrics.qualityScores.push(tracking.analysis.quality.score);
+                }
+
+                // Track common issues
+                tracking.analysis.issues.forEach(issue => {
+                    const count = metrics.commonIssues.get(issue) || 0;
+                    metrics.commonIssues.set(issue, count + 1);
+                });
+            }
+
+            /**
+             * Saves tracking data to localStorage
+             */
+            static saveTrackingData() {
+                try {
+                    const data = {
+                        interactions: Array.from(this.interactions.entries()),
+                        promptPerformance: Array.from(this.promptPerformance.entries()),
+                        lastSaved: Date.now()
+                    };
+                    localStorage.setItem('ai-api-tracking', JSON.stringify(data));
+                } catch (error) {
+                    console.error('Error saving tracking data:', error);
+                }
+            }
+
+            /**
+             * Loads tracking data from localStorage
+             */
+            static loadTrackingData() {
+                try {
+                    const saved = localStorage.getItem('ai-api-tracking');
+                    if (saved) {
+                        const data = JSON.parse(saved);
+                        this.interactions = new Map(data.interactions || []);
+                        this.promptPerformance = new Map(data.promptPerformance || []);
+                    }
+                } catch (error) {
+                    console.error('Error loading tracking data:', error);
+                }
+            }
+
+            /**
+             * Gets comprehensive analytics summary
+             * @returns {Object} Analytics data
+             */
+            static getAnalytics() {
+                const totalInteractions = this.interactions.size;
+                const successful = Array.from(this.interactions.values()).filter(i => i.performance.success).length;
+                const successRate = totalInteractions > 0 ? (successful / totalInteractions * 100).toFixed(1) : 0;
+
+                const avgResponseTime = totalInteractions > 0 
+                    ? Array.from(this.interactions.values())
+                        .reduce((sum, i) => sum + (i.performance.duration || 0), 0) / totalInteractions
+                    : 0;
+
+                const deviations = Array.from(this.interactions.values())
+                    .filter(i => i.analysis?.deviation?.hasDeviation);
+
+                const qualityScores = Array.from(this.interactions.values())
+                    .map(i => i.analysis?.quality?.score)
+                    .filter(s => s !== undefined);
+
+                const avgQuality = qualityScores.length > 0 
+                    ? qualityScores.reduce((sum, score) => sum + score, 0) / qualityScores.length
+                    : 0;
+
+                return {
+                    overview: {
+                        totalInteractions,
+                        successRate: parseFloat(successRate),
+                        averageResponseTime: Math.round(avgResponseTime),
+                        averageQuality: Math.round(avgQuality),
+                        deviationCount: deviations.length
+                    },
+                    promptTypes: Array.from(this.promptPerformance.entries()).map(([type, data]) => ({
+                        type,
+                        requests: data.totalRequests,
+                        successRate: ((data.successfulRequests / data.totalRequests) * 100).toFixed(1),
+                        avgResponseTime: Math.round(data.averageResponseTime),
+                        avgQuality: data.qualityScores.length > 0 
+                            ? Math.round(data.qualityScores.reduce((a, b) => a + b, 0) / data.qualityScores.length)
+                            : 0
+                    })),
+                    recentDeviations: deviations.slice(-10).map(d => ({
+                        timestamp: new Date(d.timestamp).toLocaleString(),
+                        userRequest: d.request.userRequest,
+                        expected: d.analysis.expectedType,
+                        actual: d.analysis.actualType,
+                        severity: d.analysis.deviation.severity,
+                        description: d.analysis.deviation.description
+                    })),
+                    commonIssues: this.getCommonIssues()
+                };
+            }
+
+            /**
+             * Gets most common issues across all interactions
+             * @returns {Array} Common issues with counts
+             */
+            static getCommonIssues() {
+                const allIssues = new Map();
+                
+                this.promptPerformance.forEach(metrics => {
+                    metrics.commonIssues.forEach((count, issue) => {
+                        const totalCount = allIssues.get(issue) || 0;
+                        allIssues.set(issue, totalCount + count);
+                    });
+                });
+
+                return Array.from(allIssues.entries())
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 10)
+                    .map(([issue, count]) => ({ issue, count }));
+            }
+
+            /**
+             * Generates improvement suggestions based on tracked data
+             * @returns {Array} List of improvement suggestions
+             */
+            static getImprovementSuggestions() {
+                const suggestions = [];
+                const analytics = this.getAnalytics();
+
+                // Success rate suggestions
+                if (analytics.overview.successRate < 80) {
+                    suggestions.push({
+                        type: 'success-rate',
+                        priority: 'high',
+                        message: `Success rate is ${analytics.overview.successRate}%. Consider improving prompt clarity and adding more examples.`
+                    });
+                }
+
+                // Response time suggestions
+                if (analytics.overview.averageResponseTime > 8000) {
+                    suggestions.push({
+                        type: 'performance',
+                        priority: 'medium',
+                        message: `Average response time is ${analytics.overview.averageResponseTime}ms. Consider reducing prompt complexity or adjusting temperature.`
+                    });
+                }
+
+                // Quality suggestions
+                if (analytics.overview.averageQuality < 70) {
+                    suggestions.push({
+                        type: 'quality',
+                        priority: 'high',
+                        message: `Average quality score is ${analytics.overview.averageQuality}%. Review prompt structure and add more specific instructions.`
+                    });
+                }
+
+                // Common issue suggestions
+                analytics.commonIssues.forEach(({issue, count}) => {
+                    if (count > 3) {
+                        if (issue.includes('JSON')) {
+                            suggestions.push({
+                                type: 'format',
+                                priority: 'high',
+                                message: `${count} JSON format issues detected. Consider adding stricter JSON format instructions to prompts.`
+                            });
+                        } else if (issue.includes('placeholder')) {
+                            suggestions.push({
+                                type: 'completeness',
+                                priority: 'medium',
+                                message: `${count} incomplete code responses. Emphasize "NO placeholders" in prompts.`
+                            });
+                        }
+                    }
+                });
+
+                return suggestions;
+            }
+        }
+
+        /**
+         * AI Analytics Dashboard
+         * Provides comprehensive UI for monitoring AI API performance and analysis
+         */
+        class AIAnalyticsDashboard {
+            static currentTab = 'overview';
+
+            /**
+             * Shows the analytics dashboard
+             */
+            static show() {
+                // Load tracking data
+                AIApiTracker.loadTrackingData();
+                
+                // Create dashboard modal
+                const modal = document.createElement('div');
+                modal.className = 'analytics-dashboard';
+                modal.innerHTML = this.createDashboardHTML();
+                
+                document.body.appendChild(modal);
+                
+                // Set up event listeners
+                this.setupEventListeners();
+                
+                // Load initial data
+                this.refreshData();
+                
+                // Show overview tab by default
+                this.switchTab('overview');
+            }
+
+            /**
+             * Creates the main dashboard HTML structure
+             * @returns {string} Dashboard HTML
+             */
+            static createDashboardHTML() {
+                return `
+                    <div class="analytics-content">
+                        <div class="analytics-header">
+                            <h2>🤖 AI Analytics Dashboard</h2>
+                            <button class="close-btn" onclick="this.closest('.analytics-dashboard').remove()">×</button>
+                        </div>
+                        <div class="analytics-body">
+                            <div class="analytics-tabs">
+                                <div class="analytics-tab active" data-tab="overview">📊 Overview</div>
+                                <div class="analytics-tab" data-tab="performance">⚡ Performance</div>
+                                <div class="analytics-tab" data-tab="deviations">🎯 Deviations</div>
+                                <div class="analytics-tab" data-tab="suggestions">💡 Suggestions</div>
+                                <div class="analytics-tab" data-tab="export">📤 Export</div>
+                            </div>
+                            
+                            <div id="tab-overview" class="tab-content active">
+                                <div class="analytics-grid">
+                                    <div class="analytics-card">
+                                        <h3>📈 Total Interactions</h3>
+                                        <div class="metric-value" id="total-interactions">0</div>
+                                        <div class="metric-label">API Requests</div>
+                                    </div>
+                                    <div class="analytics-card">
+                                        <h3>✅ Success Rate</h3>
+                                        <div class="metric-value" id="success-rate">0%</div>
+                                        <div class="metric-label">Successful Responses</div>
+                                    </div>
+                                    <div class="analytics-card">
+                                        <h3>⚡ Avg Response Time</h3>
+                                        <div class="metric-value" id="avg-response-time">0ms</div>
+                                        <div class="metric-label">API Latency</div>
+                                    </div>
+                                    <div class="analytics-card">
+                                        <h3>⭐ Quality Score</h3>
+                                        <div class="metric-value" id="avg-quality">0</div>
+                                        <div class="metric-label">Average Quality</div>
+                                    </div>
+                                    <div class="analytics-card">
+                                        <h3>🎯 Deviations</h3>
+                                        <div class="metric-value" id="deviation-count">0</div>
+                                        <div class="metric-label">Response Deviations</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="analytics-card">
+                                    <h3>📋 Prompt Type Performance</h3>
+                                    <table class="analytics-table" id="prompt-performance-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Prompt Type</th>
+                                                <th>Requests</th>
+                                                <th>Success Rate</th>
+                                                <th>Avg Response Time</th>
+                                                <th>Quality Score</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            
+                            <div id="tab-performance" class="tab-content">
+                                <div class="analytics-card">
+                                    <h3>📊 Performance Metrics</h3>
+                                    <div id="performance-details"></div>
+                                </div>
+                            </div>
+                            
+                            <div id="tab-deviations" class="tab-content">
+                                <div class="analytics-card">
+                                    <h3>🎯 Recent Deviations</h3>
+                                    <table class="analytics-table" id="deviations-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Timestamp</th>
+                                                <th>User Request</th>
+                                                <th>Expected</th>
+                                                <th>Actual</th>
+                                                <th>Severity</th>
+                                                <th>Description</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                
+                                <div class="analytics-card">
+                                    <h3>🔍 Common Issues</h3>
+                                    <div id="common-issues"></div>
+                                </div>
+                            </div>
+                            
+                            <div id="tab-suggestions" class="tab-content">
+                                <div class="analytics-card">
+                                    <h3>💡 Improvement Suggestions</h3>
+                                    <div id="suggestions-list"></div>
+                                </div>
+                            </div>
+                            
+                            <div id="tab-export" class="tab-content">
+                                <div class="analytics-card">
+                                    <h3>📤 Export Data</h3>
+                                    <p>Export AI analytics data for external analysis:</p>
+                                    <div style="margin-top: 16px; display: flex; gap: 12px; flex-wrap: wrap;">
+                                        <button class="btn-primary" onclick="AIAnalyticsDashboard.exportData('json')">
+                                            📄 Export JSON
+                                        </button>
+                                        <button class="btn-primary" onclick="AIAnalyticsDashboard.exportData('csv')">
+                                            📊 Export CSV
+                                        </button>
+                                        <button class="btn-secondary" onclick="AIAnalyticsDashboard.clearData()">
+                                            🗑️ Clear All Data
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            /**
+             * Sets up event listeners for the dashboard
+             */
+            static setupEventListeners() {
+                const tabs = document.querySelectorAll('.analytics-tab');
+                tabs.forEach(tab => {
+                    tab.addEventListener('click', () => {
+                        const tabName = tab.dataset.tab;
+                        this.switchTab(tabName);
+                    });
+                });
+            }
+
+            /**
+             * Switches between dashboard tabs
+             * @param {string} tabName - Name of tab to switch to
+             */
+            static switchTab(tabName) {
+                // Update tab buttons
+                document.querySelectorAll('.analytics-tab').forEach(tab => {
+                    tab.classList.remove('active');
+                    if (tab.dataset.tab === tabName) {
+                        tab.classList.add('active');
+                    }
+                });
+
+                // Update tab content
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.remove('active');
+                });
+                
+                const targetContent = document.getElementById(`tab-${tabName}`);
+                if (targetContent) {
+                    targetContent.classList.add('active');
+                }
+
+                this.currentTab = tabName;
+                this.refreshTabData(tabName);
+            }
+
+            /**
+             * Refreshes all dashboard data
+             */
+            static refreshData() {
+                this.refreshTabData(this.currentTab);
+            }
+
+            /**
+             * Refreshes data for specific tab
+             * @param {string} tabName - Tab to refresh
+             */
+            static refreshTabData(tabName) {
+                const analytics = AIApiTracker.getAnalytics();
+
+                switch (tabName) {
+                    case 'overview':
+                        this.updateOverviewTab(analytics);
+                        break;
+                    case 'performance':
+                        this.updatePerformanceTab(analytics);
+                        break;
+                    case 'deviations':
+                        this.updateDeviationsTab(analytics);
+                        break;
+                    case 'suggestions':
+                        this.updateSuggestionsTab();
+                        break;
+                }
+            }
+
+            /**
+             * Updates overview tab with analytics data
+             * @param {Object} analytics - Analytics data
+             */
+            static updateOverviewTab(analytics) {
+                document.getElementById('total-interactions').textContent = analytics.overview.totalInteractions;
+                document.getElementById('success-rate').textContent = analytics.overview.successRate + '%';
+                document.getElementById('avg-response-time').textContent = analytics.overview.averageResponseTime + 'ms';
+                document.getElementById('avg-quality').textContent = analytics.overview.averageQuality;
+                document.getElementById('deviation-count').textContent = analytics.overview.deviationCount;
+
+                // Update prompt performance table
+                const tbody = document.querySelector('#prompt-performance-table tbody');
+                tbody.innerHTML = '';
+
+                analytics.promptTypes.forEach(promptType => {
+                    const row = tbody.insertRow();
+                    row.innerHTML = `
+                        <td>${promptType.type}</td>
+                        <td>${promptType.requests}</td>
+                        <td>${promptType.successRate}%</td>
+                        <td>${promptType.avgResponseTime}ms</td>
+                        <td>${promptType.avgQuality}</td>
+                    `;
+                });
+            }
+
+            /**
+             * Updates performance tab
+             * @param {Object} analytics - Analytics data
+             */
+            static updatePerformanceTab(analytics) {
+                const container = document.getElementById('performance-details');
+                
+                let html = '<div class="analytics-grid">';
+                
+                analytics.promptTypes.forEach(promptType => {
+                    html += `
+                        <div class="analytics-card">
+                            <h4>${promptType.type}</h4>
+                            <div>Requests: ${promptType.requests}</div>
+                            <div>Success Rate: ${promptType.successRate}%</div>
+                            <div>Avg Time: ${promptType.avgResponseTime}ms</div>
+                            <div>Quality: ${promptType.avgQuality}/100</div>
+                        </div>
+                    `;
+                });
+                
+                html += '</div>';
+                container.innerHTML = html;
+            }
+
+            /**
+             * Updates deviations tab
+             * @param {Object} analytics - Analytics data
+             */
+            static updateDeviationsTab(analytics) {
+                // Update deviations table
+                const tbody = document.querySelector('#deviations-table tbody');
+                tbody.innerHTML = '';
+
+                analytics.recentDeviations.forEach(deviation => {
+                    const row = tbody.insertRow();
+                    row.innerHTML = `
+                        <td>${deviation.timestamp}</td>
+                        <td>${deviation.userRequest.substring(0, 50)}${deviation.userRequest.length > 50 ? '...' : ''}</td>
+                        <td>${deviation.expected}</td>
+                        <td>${deviation.actual}</td>
+                        <td><span class="severity-${deviation.severity}">${deviation.severity}</span></td>
+                        <td>${deviation.description}</td>
+                    `;
+                });
+
+                // Update common issues
+                const issuesContainer = document.getElementById('common-issues');
+                let issuesHTML = '';
+
+                analytics.commonIssues.forEach(({issue, count}) => {
+                    issuesHTML += `
+                        <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e2e8f0;">
+                            <span>${issue}</span>
+                            <span style="font-weight: 600; color: #e53e3e;">${count} times</span>
+                        </div>
+                    `;
+                });
+
+                issuesContainer.innerHTML = issuesHTML || '<p>No common issues detected.</p>';
+            }
+
+            /**
+             * Updates suggestions tab
+             */
+            static updateSuggestionsTab() {
+                const suggestions = AIApiTracker.getImprovementSuggestions();
+                const container = document.getElementById('suggestions-list');
+
+                let html = '';
+
+                suggestions.forEach(suggestion => {
+                    html += `
+                        <div class="suggestion-item suggestion-${suggestion.priority}">
+                            <div style="font-weight: 600; margin-bottom: 8px; text-transform: uppercase; font-size: 12px; color: #718096;">
+                                ${suggestion.priority} Priority - ${suggestion.type}
+                            </div>
+                            <div>${suggestion.message}</div>
+                        </div>
+                    `;
+                });
+
+                container.innerHTML = html || '<p>No suggestions available. More data needed for analysis.</p>';
+            }
+
+            /**
+             * Exports analytics data
+             * @param {string} format - Export format (json or csv)
+             */
+            static exportData(format) {
+                const analytics = AIApiTracker.getAnalytics();
+                const interactions = Array.from(AIApiTracker.interactions.values());
+
+                if (format === 'json') {
+                    const data = {
+                        exportTimestamp: new Date().toISOString(),
+                        analytics: analytics,
+                        interactions: interactions
+                    };
+
+                    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                    this.downloadFile(blob, `ai-analytics-${Date.now()}.json`);
+
+                } else if (format === 'csv') {
+                    let csv = 'Timestamp,User Request,Prompt Type,Duration,Success,Expected Type,Actual Type,Quality Score,Issues\n';
+
+                    interactions.forEach(interaction => {
+                        const timestamp = new Date(interaction.timestamp).toISOString();
+                        const userRequest = (interaction.request.userRequest || '').replace(/"/g, '""');
+                        const promptType = interaction.request.promptType;
+                        const duration = interaction.performance.duration || 0;
+                        const success = interaction.performance.success;
+                        const expectedType = interaction.analysis?.expectedType || '';
+                        const actualType = interaction.analysis?.actualType || '';
+                        const qualityScore = interaction.analysis?.quality?.score || 0;
+                        const issues = (interaction.analysis?.issues || []).join('; ').replace(/"/g, '""');
+
+                        csv += `"${timestamp}","${userRequest}","${promptType}",${duration},${success},"${expectedType}","${actualType}",${qualityScore},"${issues}"\n`;
+                    });
+
+                    const blob = new Blob([csv], { type: 'text/csv' });
+                    this.downloadFile(blob, `ai-analytics-${Date.now()}.csv`);
+                }
+            }
+
+            /**
+             * Downloads a file
+             * @param {Blob} blob - File blob
+             * @param {string} filename - File name
+             */
+            static downloadFile(blob, filename) {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+
+            /**
+             * Clears all analytics data
+             */
+            static clearData() {
+                if (confirm('Are you sure you want to clear all AI analytics data? This action cannot be undone.')) {
+                    AIApiTracker.interactions.clear();
+                    AIApiTracker.promptPerformance.clear();
+                    AIApiTracker.saveTrackingData();
+                    this.refreshData();
+                    alert('Analytics data cleared successfully.');
+                }
+            }
+        }
 
         /**
          * Conversation Manager
@@ -2277,6 +3418,9 @@ Please enhance or modify this droplet according to the user's request while main
              * @returns {Object} AI response with message and optional action
              */
             static async processWithGemini(userRequest) {
+                // Generate unique request ID for tracking
+                const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                
                 try {
                     // Check for API key command
                     if (userRequest.startsWith('/api-key ')) {
@@ -2290,38 +3434,88 @@ Please enhance or modify this droplet according to the user's request while main
 
                     const prompt = this.buildGeminiPrompt(userRequest);
                     
+                    // Start tracking the API request
+                    const tracking = AIApiTracker.startTracking(requestId, {
+                        prompt: prompt,
+                        userRequest: userRequest,
+                        model: 'gemini-2.0-flash',
+                        temperature: 0.7,
+                        maxTokens: 2048
+                    });
+
+                    const requestBody = {
+                        contents: [{
+                            parts: [{
+                                text: prompt
+                            }]
+                        }],
+                        generationConfig: {
+                            temperature: 0.7,
+                            topK: 40,
+                            topP: 0.95,
+                            maxOutputTokens: 2048,
+                        }
+                    };
+
+                    console.log('🤖 AI API Request:', {
+                        id: requestId,
+                        userRequest: userRequest,
+                        promptLength: prompt.length,
+                        timestamp: new Date().toISOString()
+                    });
+                    
                     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                             'X-goog-api-key': this.geminiApiKey
                         },
-                        body: JSON.stringify({
-                            contents: [{
-                                parts: [{
-                                    text: prompt
-                                }]
-                            }],
-                            generationConfig: {
-                                temperature: 0.7,
-                                topK: 40,
-                                topP: 0.95,
-                                maxOutputTokens: 2048,
-                            }
-                        })
+                        body: JSON.stringify(requestBody)
                     });
 
                     if (!response.ok) {
-                        throw new Error(`Gemini API error: ${response.status}`);
+                        const errorMsg = `Gemini API error: ${response.status} ${response.statusText}`;
+                        
+                        // Complete tracking with error
+                        AIApiTracker.completeTracking(requestId, null, false, errorMsg);
+                        
+                        console.error('🚨 AI API Error:', {
+                            id: requestId,
+                            status: response.status,
+                            statusText: response.statusText
+                        });
+                        
+                        throw new Error(errorMsg);
                     }
 
                     const data = await response.json();
                     const aiResponse = data.candidates[0].content.parts[0].text;
                     
+                    // Complete tracking with successful response
+                    AIApiTracker.completeTracking(requestId, {
+                        text: aiResponse,
+                        tokens: data.usageMetadata || null,
+                        model: 'gemini-2.0-flash',
+                        raw: data
+                    }, true);
+
+                    console.log('✅ AI API Response:', {
+                        id: requestId,
+                        responseLength: aiResponse.length,
+                        duration: tracking ? Math.round(performance.now() - tracking.performance.startTime) + 'ms' : 'unknown',
+                        timestamp: new Date().toISOString()
+                    });
+                    
                     return this.parseGeminiResponse(aiResponse, userRequest);
                     
                 } catch (error) {
                     console.error('Gemini API error:', error);
+                    
+                    // Complete tracking with error if not already completed
+                    if (AIApiTracker.interactions.has(requestId)) {
+                        AIApiTracker.completeTracking(requestId, null, false, error.message);
+                    }
+                    
                     return {
                         message: "⚠️ Gemini AI is temporarily unavailable. Using local processing instead...",
                         action: null
