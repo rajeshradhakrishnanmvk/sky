@@ -1,0 +1,2788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Autonomous App Marketplace</title>
+    <style>
+        /* Reset and base styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: auto 1fr;
+            gap: 20px;
+            height: 100vh;
+        }
+
+        /* Header spanning both columns */
+        .header {
+            grid-column: 1 / -1;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            text-align: center;
+        }
+
+        .header h1 {
+            color: #5a67d8;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        /* Conversation Panel */
+        .conversation-panel {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .conversation-header {
+            background: #5a67d8;
+            color: white;
+            padding: 15px 20px;
+            font-weight: 600;
+            font-size: 1.1em;
+        }
+
+        .conversation-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f8f9fa;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            padding: 12px 16px;
+            border-radius: 18px;
+            max-width: 80%;
+            word-wrap: break-word;
+            animation: messageSlide 0.3s ease-out;
+        }
+
+        @keyframes messageSlide {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.user {
+            background: #5a67d8;
+            color: white;
+            margin-left: auto;
+            text-align: right;
+        }
+
+        .message.ai {
+            background: #e2e8f0;
+            color: #2d3748;
+            margin-right: auto;
+        }
+
+        .message.system {
+            background: #48bb78;
+            color: white;
+            margin: 0 auto;
+            text-align: center;
+            font-size: 0.9em;
+        }
+
+        .conversation-input {
+            display: flex;
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .conversation-input input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 25px;
+            font-size: 1em;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+
+        .conversation-input input:focus {
+            border-color: #5a67d8;
+        }
+
+        .conversation-input button {
+            margin-left: 10px;
+            padding: 12px 24px;
+            background: #5a67d8;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background-color 0.3s ease;
+        }
+
+        .conversation-input button:hover {
+            background: #4c51bf;
+        }
+
+        .conversation-input button:disabled {
+            background: #a0aec0;
+            cursor: not-allowed;
+        }
+
+        /* Apps Panel */
+        .apps-panel {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .apps-header {
+            background: #48bb78;
+            color: white;
+            padding: 15px 20px;
+            font-weight: 600;
+            font-size: 1.1em;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .app-count {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.9em;
+        }
+
+        .status-indicators {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .status-indicator {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 4px 8px;
+            border-radius: 8px;
+            font-size: 0.8em;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #fff;
+        }
+
+        .status-dot.green { background: #28a745; }
+        .status-dot.yellow { background: #ffc107; }
+        .status-dot.red { background: #dc3545; }
+
+        .apps-container {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .app-item {
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .app-item:hover {
+            border-color: #5a67d8;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .app-header {
+            background: #f7fafc;
+            padding: 12px 16px;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .app-title {
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .app-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .app-controls button {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8em;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .btn-run {
+            background: #48bb78;
+            color: white;
+        }
+
+        .btn-run:hover {
+            background: #38a169;
+        }
+
+        .btn-edit {
+            background: #ed8936;
+            color: white;
+        }
+
+        .btn-edit:hover {
+            background: #dd6b20;
+        }
+
+        .btn-delete {
+            background: #f56565;
+            color: white;
+        }
+
+        .btn-delete:hover {
+            background: #e53e3e;
+        }
+
+        .app-content {
+            padding: 16px;
+            min-height: 200px;
+            background: #f8f9fa;
+            position: relative;
+        }
+
+        .app-running {
+            border-color: #48bb78 !important;
+        }
+
+        .app-running .app-header {
+            background: #c6f6d5;
+        }
+
+        /* Loading animation */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #5a67d8;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive design */
+        @media (max-width: 1024px) {
+            .container {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto auto 1fr;
+            }
+            
+            .header {
+                grid-column: 1;
+            }
+        }
+
+        /* Utility classes */
+        .hidden {
+            display: none;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🤖 Autonomous App Marketplace</h1>
+            <p>Build, modify, and manage apps through natural conversation with AI</p>
+            <div style="margin-top: 15px; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;">
+                <button onclick="AppManager.exportApps()" style="padding: 8px 16px; background: #6c757d; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.9em;">📤 Export Apps</button>
+                <input type="file" id="importFile" accept=".json" style="display: none;" onchange="handleImport(this)">
+                <button onclick="document.getElementById('importFile').click()" style="padding: 8px 16px; background: #6c757d; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.9em;">📥 Import Apps</button>
+                <button onclick="clearAllData()" style="padding: 8px 16px; background: #dc3545; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.9em;">🗑️ Clear All</button>
+                <button onclick="showApiKeyPrompt()" style="padding: 8px 16px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.9em;">🔑 Setup Gemini AI</button>
+            </div>
+        </div>
+
+        <!-- Conversation Panel -->
+        <div class="conversation-panel">
+            <div class="conversation-header">
+                💬 Chat with AI Marketplace
+            </div>
+            <div class="conversation-messages" id="conversationMessages">
+                <div class="message ai">
+                    👋 Welcome to the Autonomous App Marketplace! I can help you create, modify, and manage apps in real-time. 
+                    Try saying something like:
+                    <br><br>
+                    • "Build a notepad app"
+                    <br>
+                    • "Create a calculator with square root function"
+                    <br>
+                    • "Make a snake and ladder game"
+                    <br>
+                    • "Modify the calculator to add memory functions"
+                </div>
+            </div>
+            <div class="conversation-input">
+                <input 
+                    type="text" 
+                    id="userInput" 
+                    placeholder="Tell me what app you'd like to build or modify..."
+                    autocomplete="off"
+                />
+                <button id="sendButton" onclick="sendMessage()">Send</button>
+            </div>
+        </div>
+
+        <!-- Apps Panel -->
+        <div class="apps-panel">
+            <div class="apps-header">
+                <div>🚀 Running Apps</div>
+                <div class="status-indicators">
+                    <span class="app-count" id="appCount">0 apps</span>
+                    <div class="status-indicator" id="securityStatus" title="Security Status">
+                        <div class="status-dot green"></div>
+                        <span>Secure</span>
+                    </div>
+                    <div class="status-indicator" id="queueStatus" title="Queue Status">
+                        <div class="status-dot green"></div>
+                        <span id="queueText">Ready</span>
+                    </div>
+                    <div class="status-indicator" id="aiStatus" title="AI Status">
+                        <div class="status-dot" id="aiStatusDot"></div>
+                        <span id="aiStatusText">Local</span>
+                    </div>
+                </div>
+            </div>
+            <div class="apps-container" id="appsContainer">
+                <div style="text-align: center; color: #666; padding: 40px;">
+                    No apps created yet. Start by asking the AI to build something!
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * Autonomous App Marketplace - Main Application
+         * 
+         * This application provides a conversational interface for creating,
+         * modifying, and managing web applications at runtime using AI assistance.
+         * 
+         * Architecture:
+         * - ConversationManager: Handles chat interface and AI communication
+         * - AppManager: Manages app lifecycle (create, update, delete, run)
+         * - AIService: Simulates AI API for app generation and modification
+         * - AppExecutor: Safely executes generated app code at runtime
+         */
+
+        // Global application state
+        const AppMarketplace = {
+            apps: new Map(), // Stores all created apps
+            runningApps: new Set(), // Tracks currently running apps
+            conversationHistory: [], // Stores conversation messages
+            isProcessing: false // Prevents concurrent AI requests
+        };
+
+        /**
+         * Conversation Manager
+         * Handles the chat interface and user interactions
+         */
+        class ConversationManager {
+            constructor() {
+                this.messagesContainer = document.getElementById('conversationMessages');
+                this.userInput = document.getElementById('userInput');
+                this.sendButton = document.getElementById('sendButton');
+                
+                // Set up event listeners
+                this.userInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        this.sendMessage();
+                    }
+                });
+            }
+
+            /**
+             * Adds a message to the conversation
+             * @param {string} text - Message content
+             * @param {string} type - Message type: 'user', 'ai', or 'system'
+             */
+            addMessage(text, type = 'ai') {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${type}`;
+                messageDiv.innerHTML = text;
+                
+                this.messagesContainer.appendChild(messageDiv);
+                this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
+                
+                // Store in conversation history
+                AppMarketplace.conversationHistory.push({ text, type, timestamp: Date.now() });
+            }
+
+            /**
+             * Sends user message and processes AI response
+             */
+            async sendMessage() {
+                const userText = this.userInput.value.trim();
+                if (!userText || AppMarketplace.isProcessing) return;
+
+                // Add user message
+                this.addMessage(userText, 'user');
+                this.userInput.value = '';
+                
+                // Show processing state
+                AppMarketplace.isProcessing = true;
+                this.sendButton.disabled = true;
+                this.sendButton.innerHTML = '<span class="loading"></span>';
+
+                try {
+                    // Analyze request complexity
+                    const complexity = ComplexityAnalyzer.analyzeRequest(userText);
+                    
+                    if (complexity.level === 'complex') {
+                        this.addMessage(`🔍 **Complexity Analysis:** This is a complex request (${complexity.factors.join(', ')}). I'll create a simpler version to get you started.`, 'system');
+                    }
+
+                    // Process user request through AI (with queueing for complex operations)
+                    let response;
+                    if (complexity.level === 'complex' && complexity.factors.length > 2) {
+                        // Use queue for very complex requests
+                        response = await this.processWithQueue(userText, complexity);
+                    } else {
+                        // Process directly
+                        response = await AIService.processRequest(userText);
+                    }
+                    
+                    this.addMessage(response.message, 'ai');
+                    
+                    // Execute any app actions
+                    if (response.action) {
+                        await this.executeAction(response.action);
+                    }
+                    
+                    // Show complexity suggestions if applicable
+                    if (complexity.level === 'complex' && complexity.suggestions.length > 0) {
+                        const suggestionText = `💡 **Next Steps:**\n${complexity.suggestions.map(s => `• ${s}`).join('\n')}`;
+                        this.addMessage(suggestionText, 'system');
+                    }
+                    
+                } catch (error) {
+                    console.error('Error processing request:', error);
+                    this.addMessage('Sorry, I encountered an error processing your request. Please try again.', 'ai');
+                } finally {
+                    // Reset processing state
+                    AppMarketplace.isProcessing = false;
+                    this.sendButton.disabled = false;
+                    this.sendButton.textContent = 'Send';
+                }
+            }
+
+            /**
+             * Processes complex requests using the queue system
+             * @param {string} userText - User input
+             * @param {Object} complexity - Complexity analysis result
+             * @returns {Object} AI response
+             */
+            async processWithQueue(userText, complexity) {
+                return new Promise((resolve, reject) => {
+                    const queueId = QueueManager.enqueue({
+                        type: 'ai-request',
+                        data: { userInput: userText, complexity },
+                        callback: (error, result) => {
+                            if (error) {
+                                reject(error);
+                            } else {
+                                resolve(result);
+                            }
+                        }
+                    });
+                    
+                    // Show queue status
+                    const status = QueueManager.getQueueStatus();
+                    if (status.total > 1) {
+                        this.addMessage(`⏳ **Request queued** (${status.queued} pending, ${status.processing} processing)`, 'system');
+                    }
+                });
+            }
+
+            /**
+             * Executes actions returned by AI (create, modify, delete apps)
+             * @param {Object} action - Action object with type and parameters
+             */
+            async executeAction(action) {
+                try {
+                    switch (action.type) {
+                        case 'create':
+                            await AppManager.createApp(action.appData);
+                            this.addMessage(`✅ Created "${action.appData.name}" successfully!`, 'system');
+                            break;
+                        case 'modify':
+                            await AppManager.modifyApp(action.appId, action.modifications);
+                            this.addMessage(`✅ Modified "${action.appId}" successfully!`, 'system');
+                            break;
+                        case 'delete':
+                            await AppManager.deleteApp(action.appId);
+                            this.addMessage(`✅ Deleted "${action.appId}" successfully!`, 'system');
+                            break;
+                        case 'run':
+                            await AppManager.runApp(action.appId);
+                            this.addMessage(`✅ Started "${action.appId}" successfully!`, 'system');
+                            break;
+                        default:
+                            console.warn('Unknown action type:', action.type);
+                    }
+                } catch (error) {
+                    console.error('Error executing action:', error);
+                    this.addMessage(`❌ Failed to execute action: ${error.message}`, 'system');
+                }
+            }
+        }
+
+        /**
+         * App Manager
+         * Handles creation, modification, deletion, and execution of apps with security validation
+         */
+        class AppManager {
+            /**
+             * Creates a new app and adds it to the marketplace
+             * @param {Object} appData - App configuration and code
+             */
+            static async createApp(appData) {
+                try {
+                    // Validate app security
+                    const validation = SecurityValidator.validateApp(appData);
+                    
+                    if (!validation.isValid) {
+                        throw new Error(`Security validation failed: ${validation.criticalIssues} critical issues found. ${validation.issues.map(i => i.message).join(', ')}`);
+                    }
+
+                    // Show warnings if any
+                    if (validation.warningIssues > 0) {
+                        console.warn('Security warnings for app:', validation.issues.filter(i => i.severity === 'warning'));
+                        conversationManager.addMessage(`⚠️ **Security Warning**: ${validation.warningIssues} potential security issues detected. The app will run but please review the console for details.`, 'system');
+                    }
+
+                    // Sanitize the app data
+                    const sanitizedData = SecurityValidator.sanitizeApp(appData);
+                    
+                    const appId = this.generateAppId(sanitizedData.name);
+                    
+                    const app = {
+                        id: appId,
+                        name: sanitizedData.name,
+                        description: sanitizedData.description || '',
+                        html: sanitizedData.html || '',
+                        css: sanitizedData.css || '',
+                        javascript: sanitizedData.javascript || '',
+                        created: Date.now(),
+                        modified: Date.now(),
+                        isRunning: false,
+                        securityValidated: true,
+                        validationResult: validation
+                    };
+
+                    AppMarketplace.apps.set(appId, app);
+                    this.saveToStorage();
+                    this.renderApp(app);
+                    this.updateAppCount();
+                    
+                } catch (error) {
+                    console.error('Error creating app:', error);
+                    throw error;
+                }
+            }
+
+            /**
+             * Modifies an existing app
+             * @param {string} appId - App identifier
+             * @param {Object} modifications - Changes to apply
+             */
+            static async modifyApp(appId, modifications) {
+                const app = AppMarketplace.apps.get(appId);
+                if (!app) {
+                    throw new Error(`App "${appId}" not found`);
+                }
+
+                try {
+                    // Create modified app data for validation
+                    const modifiedData = {
+                        name: modifications.name || app.name,
+                        description: modifications.description || app.description,
+                        html: modifications.html || app.html,
+                        css: modifications.css || app.css,
+                        javascript: modifications.javascript || app.javascript
+                    };
+
+                    // Validate modified app
+                    const validation = SecurityValidator.validateApp(modifiedData);
+                    
+                    if (!validation.isValid) {
+                        throw new Error(`Security validation failed: ${validation.criticalIssues} critical issues found. ${validation.issues.map(i => i.message).join(', ')}`);
+                    }
+
+                    // Show warnings if any
+                    if (validation.warningIssues > 0) {
+                        console.warn('Security warnings for modified app:', validation.issues.filter(i => i.severity === 'warning'));
+                        conversationManager.addMessage(`⚠️ **Security Warning**: ${validation.warningIssues} potential security issues detected in modifications.`, 'system');
+                    }
+
+                    // Sanitize the modifications
+                    const sanitizedModifications = SecurityValidator.sanitizeApp(modifiedData);
+                    
+                    // Apply modifications
+                    Object.assign(app, sanitizedModifications, { 
+                        modified: Date.now(),
+                        securityValidated: true,
+                        validationResult: validation
+                    });
+                    
+                    this.saveToStorage();
+                    this.renderApp(app);
+                    
+                    // If app is running, restart it with new code
+                    if (app.isRunning) {
+                        await this.runApp(appId);
+                    }
+                    
+                } catch (error) {
+                    console.error('Error modifying app:', error);
+                    throw error;
+                }
+            }
+
+            /**
+             * Deletes an app from the marketplace
+             * @param {string} appId - App identifier
+             */
+            static async deleteApp(appId) {
+                const app = AppMarketplace.apps.get(appId);
+                if (!app) {
+                    throw new Error(`App "${appId}" not found`);
+                }
+
+                // Stop app if running
+                if (app.isRunning) {
+                    this.stopApp(appId);
+                }
+
+                // Remove from storage and UI
+                AppMarketplace.apps.delete(appId);
+                this.saveToStorage();
+                
+                const appElement = document.getElementById(`app-${appId}`);
+                if (appElement) {
+                    appElement.remove();
+                }
+                
+                this.updateAppCount();
+            }
+
+            /**
+             * Saves all apps to localStorage
+             */
+            static saveToStorage() {
+                try {
+                    const appsData = {};
+                    AppMarketplace.apps.forEach((app, id) => {
+                        appsData[id] = app;
+                    });
+                    localStorage.setItem('marketplace-apps', JSON.stringify(appsData));
+                    localStorage.setItem('marketplace-last-saved', Date.now().toString());
+                } catch (error) {
+                    console.error('Error saving to localStorage:', error);
+                }
+            }
+
+            /**
+             * Loads apps from localStorage
+             */
+            static loadFromStorage() {
+                try {
+                    const appsData = localStorage.getItem('marketplace-apps');
+                    if (appsData) {
+                        const parsed = JSON.parse(appsData);
+                        AppMarketplace.apps.clear();
+                        
+                        Object.entries(parsed).forEach(([id, app]) => {
+                            AppMarketplace.apps.set(id, app);
+                        });
+                        
+                        // Render all loaded apps
+                        AppMarketplace.apps.forEach(app => {
+                            this.renderApp(app);
+                        });
+                        
+                        this.updateAppCount();
+                        
+                        const lastSaved = localStorage.getItem('marketplace-last-saved');
+                        if (lastSaved) {
+                            const saveDate = new Date(parseInt(lastSaved));
+                            conversationManager.addMessage(`📁 **Loaded ${AppMarketplace.apps.size} saved apps** from ${saveDate.toLocaleString()}`, 'system');
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error loading from localStorage:', error);
+                    conversationManager.addMessage(`⚠️ **Error loading saved apps**: ${error.message}`, 'system');
+                }
+            }
+
+            /**
+             * Exports all apps to a downloadable JSON file
+             */
+            static exportApps() {
+                try {
+                    const appsData = {};
+                    AppMarketplace.apps.forEach((app, id) => {
+                        appsData[id] = app;
+                    });
+                    
+                    const exportData = {
+                        version: '1.0',
+                        exported: Date.now(),
+                        apps: appsData
+                    };
+                    
+                    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `marketplace-apps-${new Date().toISOString().split('T')[0]}.json`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    
+                    conversationManager.addMessage(`📤 **Exported ${AppMarketplace.apps.size} apps** to JSON file`, 'system');
+                } catch (error) {
+                    console.error('Error exporting apps:', error);
+                    conversationManager.addMessage(`⚠️ **Export failed**: ${error.message}`, 'system');
+                }
+            }
+
+            /**
+             * Imports apps from a JSON file
+             * @param {File} file - JSON file containing app data
+             */
+            static async importApps(file) {
+                try {
+                    const text = await file.text();
+                    const importData = JSON.parse(text);
+                    
+                    if (!importData.apps) {
+                        throw new Error('Invalid import file format');
+                    }
+                    
+                    let importedCount = 0;
+                    Object.entries(importData.apps).forEach(([id, app]) => {
+                        // Validate each imported app
+                        const validation = SecurityValidator.validateApp(app);
+                        if (validation.isValid) {
+                            const newId = this.generateAppId(app.name);
+                            AppMarketplace.apps.set(newId, { ...app, id: newId });
+                            this.renderApp(AppMarketplace.apps.get(newId));
+                            importedCount++;
+                        } else {
+                            console.warn(`Skipped importing app "${app.name}" due to security issues:`, validation.issues);
+                        }
+                    });
+                    
+                    this.saveToStorage();
+                    this.updateAppCount();
+                    
+                    conversationManager.addMessage(`📥 **Imported ${importedCount} apps** successfully`, 'system');
+                } catch (error) {
+                    console.error('Error importing apps:', error);
+                    conversationManager.addMessage(`⚠️ **Import failed**: ${error.message}`, 'system');
+                }
+            }
+
+            /**
+             * Runs an app by executing its code
+             * @param {string} appId - App identifier
+             */
+            static async runApp(appId) {
+                const app = AppMarketplace.apps.get(appId);
+                if (!app) {
+                    throw new Error(`App "${appId}" not found`);
+                }
+
+                // Stop if already running
+                if (app.isRunning) {
+                    this.stopApp(appId);
+                }
+
+                try {
+                    // Execute the app code
+                    await AppExecutor.execute(app);
+                    app.isRunning = true;
+                    AppMarketplace.runningApps.add(appId);
+                    
+                    // Update UI
+                    const appElement = document.getElementById(`app-${appId}`);
+                    appElement.classList.add('app-running');
+                    
+                    const runButton = appElement.querySelector('.btn-run');
+                    runButton.textContent = 'Stop';
+                    runButton.onclick = () => this.stopApp(appId);
+                    
+                } catch (error) {
+                    console.error('Error running app:', error);
+                    throw new Error(`Failed to run app: ${error.message}`);
+                }
+            }
+
+            /**
+             * Stops a running app
+             * @param {string} appId - App identifier
+             */
+            static stopApp(appId) {
+                const app = AppMarketplace.apps.get(appId);
+                if (!app) return;
+
+                app.isRunning = false;
+                AppMarketplace.runningApps.delete(appId);
+                
+                // Clear app content
+                const appContent = document.querySelector(`#app-${appId} .app-content`);
+                if (appContent) {
+                    appContent.innerHTML = '<div style="text-align: center; color: #666; padding: 40px;">App stopped</div>';
+                }
+                
+                // Update UI
+                const appElement = document.getElementById(`app-${appId}`);
+                appElement.classList.remove('app-running');
+                
+                const runButton = appElement.querySelector('.btn-run');
+                runButton.textContent = 'Run';
+                runButton.onclick = () => this.runApp(appId);
+            }
+
+            /**
+             * Renders an app in the apps panel
+             * @param {Object} app - App object to render
+             */
+            static renderApp(app) {
+                const container = document.getElementById('appsContainer');
+                
+                // Remove placeholder text
+                if (container.children.length === 1 && container.firstElementChild.style.textAlign === 'center') {
+                    container.innerHTML = '';
+                }
+
+                // Remove existing app element if it exists
+                const existingElement = document.getElementById(`app-${app.id}`);
+                if (existingElement) {
+                    existingElement.remove();
+                }
+
+                const appElement = document.createElement('div');
+                appElement.className = 'app-item fade-in';
+                appElement.id = `app-${app.id}`;
+                
+                appElement.innerHTML = `
+                    <div class="app-header">
+                        <div class="app-title">${app.name}</div>
+                        <div class="app-controls">
+                            <button class="btn-run" onclick="AppManager.runApp('${app.id}')">
+                                ${app.isRunning ? 'Stop' : 'Run'}
+                            </button>
+                            <button class="btn-edit" onclick="AppManager.editApp('${app.id}')">Edit</button>
+                            <button class="btn-delete" onclick="AppManager.deleteApp('${app.id}')">Delete</button>
+                        </div>
+                    </div>
+                    <div class="app-content">
+                        ${app.isRunning ? '' : '<div style="text-align: center; color: #666; padding: 40px;">Click "Run" to start this app</div>'}
+                    </div>
+                `;
+                
+                container.appendChild(appElement);
+                
+                if (app.isRunning) {
+                    appElement.classList.add('app-running');
+                }
+            }
+
+            /**
+             * Opens app editor (placeholder for future implementation)
+             * @param {string} appId - App identifier
+             */
+            static editApp(appId) {
+                const app = AppMarketplace.apps.get(appId);
+                if (!app) return;
+                
+                // For now, show app details in console
+                console.log('Edit app:', app);
+                conversationManager.addMessage(`Opening editor for "${app.name}" - this feature will show the app's source code for editing.`, 'system');
+            }
+
+            /**
+             * Generates a unique app ID from app name
+             * @param {string} name - App name
+             * @returns {string} Unique app identifier
+             */
+            static generateAppId(name) {
+                const baseName = name.toLowerCase().replace(/[^a-z0-9]/g, '-');
+                let counter = 1;
+                let appId = baseName;
+                
+                while (AppMarketplace.apps.has(appId)) {
+                    appId = `${baseName}-${counter}`;
+                    counter++;
+                }
+                
+                return appId;
+            }
+
+            /**
+             * Updates the app counter in the UI
+             */
+            static updateAppCount() {
+                const count = AppMarketplace.apps.size;
+                document.getElementById('appCount').textContent = `${count} app${count !== 1 ? 's' : ''}`;
+            }
+        }
+
+        /**
+         * Security Validator
+         * Validates generated code for security issues before execution
+         */
+        class SecurityValidator {
+            /**
+             * Validates app code for security issues
+             * @param {Object} appData - App data with HTML, CSS, and JavaScript
+             * @returns {Object} Validation result with isValid and issues
+             */
+            static validateApp(appData) {
+                const issues = [];
+                let isValid = true;
+
+                // Validate HTML
+                if (appData.html) {
+                    const htmlIssues = this.validateHTML(appData.html);
+                    issues.push(...htmlIssues);
+                }
+
+                // Validate CSS
+                if (appData.css) {
+                    const cssIssues = this.validateCSS(appData.css);
+                    issues.push(...cssIssues);
+                }
+
+                // Validate JavaScript
+                if (appData.javascript) {
+                    const jsIssues = this.validateJavaScript(appData.javascript);
+                    issues.push(...jsIssues);
+                }
+
+                // Determine if app is safe to run
+                const criticalIssues = issues.filter(issue => issue.severity === 'critical');
+                if (criticalIssues.length > 0) {
+                    isValid = false;
+                }
+
+                return {
+                    isValid,
+                    issues,
+                    criticalIssues: criticalIssues.length,
+                    warningIssues: issues.filter(issue => issue.severity === 'warning').length
+                };
+            }
+
+            /**
+             * Validates HTML content for security issues
+             * @param {string} html - HTML content to validate
+             * @returns {Array} Array of security issues
+             */
+            static validateHTML(html) {
+                const issues = [];
+                const lowerHtml = html.toLowerCase();
+
+                // Check for dangerous HTML elements
+                const dangerousElements = ['script', 'iframe', 'object', 'embed', 'form'];
+                dangerousElements.forEach(element => {
+                    if (lowerHtml.includes(`<${element}`)) {
+                        issues.push({
+                            type: 'html',
+                            severity: 'critical',
+                            message: `Dangerous HTML element detected: <${element}>`,
+                            suggestion: `Remove <${element}> tags and use JavaScript for dynamic behavior`
+                        });
+                    }
+                });
+
+                // Check for inline event handlers
+                const eventHandlers = ['onclick', 'onload', 'onerror', 'onmouseover'];
+                eventHandlers.forEach(handler => {
+                    if (lowerHtml.includes(handler)) {
+                        issues.push({
+                            type: 'html',
+                            severity: 'warning',
+                            message: `Inline event handler detected: ${handler}`,
+                            suggestion: 'Use addEventListener() in JavaScript instead'
+                        });
+                    }
+                });
+
+                // Check for javascript: URLs
+                if (lowerHtml.includes('javascript:')) {
+                    issues.push({
+                        type: 'html',
+                        severity: 'critical',
+                        message: 'JavaScript URL detected in HTML',
+                        suggestion: 'Use event listeners instead of javascript: URLs'
+                    });
+                }
+
+                return issues;
+            }
+
+            /**
+             * Validates CSS content for security issues
+             * @param {string} css - CSS content to validate
+             * @returns {Array} Array of security issues
+             */
+            static validateCSS(css) {
+                const issues = [];
+                const lowerCss = css.toLowerCase();
+
+                // Check for CSS expressions (IE specific, but dangerous)
+                if (lowerCss.includes('expression(')) {
+                    issues.push({
+                        type: 'css',
+                        severity: 'critical',
+                        message: 'CSS expression detected',
+                        suggestion: 'Use standard CSS properties instead of expressions'
+                    });
+                }
+
+                // Check for @import with external URLs
+                if (lowerCss.includes('@import') && (lowerCss.includes('http://') || lowerCss.includes('https://'))) {
+                    issues.push({
+                        type: 'css',
+                        severity: 'warning',
+                        message: 'External CSS import detected',
+                        suggestion: 'Use inline styles for security'
+                    });
+                }
+
+                // Check for javascript: in CSS
+                if (lowerCss.includes('javascript:')) {
+                    issues.push({
+                        type: 'css',
+                        severity: 'critical',
+                        message: 'JavaScript URL in CSS detected',
+                        suggestion: 'Remove javascript: URLs from CSS'
+                    });
+                }
+
+                return issues;
+            }
+
+            /**
+             * Validates JavaScript code for security issues
+             * @param {string} javascript - JavaScript code to validate
+             * @returns {Array} Array of security issues
+             */
+            static validateJavaScript(javascript) {
+                const issues = [];
+                const lowerJs = javascript.toLowerCase();
+
+                // Check for dangerous functions
+                const dangerousFunctions = [
+                    { name: 'eval', severity: 'critical', message: 'eval() function is dangerous and can execute arbitrary code' },
+                    { name: 'function(', severity: 'critical', message: 'Function constructor can execute arbitrary code' },
+                    { name: 'settimeout(', severity: 'warning', message: 'setTimeout with string argument can be dangerous' },
+                    { name: 'setinterval(', severity: 'warning', message: 'setInterval with string argument can be dangerous' },
+                    { name: 'innerhtml', severity: 'warning', message: 'innerHTML can be vulnerable to XSS attacks' },
+                    { name: 'outerhtml', severity: 'warning', message: 'outerHTML can be vulnerable to XSS attacks' },
+                    { name: 'document.write', severity: 'critical', message: 'document.write can be dangerous and is deprecated' },
+                    { name: 'document.writeln', severity: 'critical', message: 'document.writeln can be dangerous and is deprecated' }
+                ];
+
+                dangerousFunctions.forEach(func => {
+                    if (lowerJs.includes(func.name)) {
+                        issues.push({
+                            type: 'javascript',
+                            severity: func.severity,
+                            message: func.message,
+                            suggestion: this.getSafeAlternative(func.name)
+                        });
+                    }
+                });
+
+                // Check for external script loading
+                if (lowerJs.includes('document.createElement(\'script\')') || 
+                    lowerJs.includes('document.createElement("script")')) {
+                    issues.push({
+                        type: 'javascript',
+                        severity: 'critical',
+                        message: 'Dynamic script creation detected',
+                        suggestion: 'Avoid loading external scripts dynamically'
+                    });
+                }
+
+                // Check for access to sensitive APIs
+                const sensitiveAPIs = ['localStorage', 'sessionStorage', 'indexedDB', 'webkitStorageInfo'];
+                sensitiveAPIs.forEach(api => {
+                    if (lowerJs.includes(api.toLowerCase()) && !this.isAllowedStorageUsage(javascript, api)) {
+                        issues.push({
+                            type: 'javascript',
+                            severity: 'warning',
+                            message: `Access to ${api} detected`,
+                            suggestion: 'Ensure storage access is properly scoped to the app'
+                        });
+                    }
+                });
+
+                return issues;
+            }
+
+            /**
+             * Checks if storage usage is allowed (for app-specific data)
+             * @param {string} code - JavaScript code
+             * @param {string} storageAPI - Storage API being used
+             * @returns {boolean} True if usage appears safe
+             */
+            static isAllowedStorageUsage(code, storageAPI) {
+                // Allow storage if it's scoped to the app (contains app-specific keys)
+                const appScopedPatterns = [
+                    /localStorage\.setItem\(['"`][\w-]+-[\w-]+['"`]/,
+                    /localStorage\.getItem\(['"`][\w-]+-[\w-]+['"`]/,
+                    /sessionStorage\.setItem\(['"`][\w-]+-[\w-]+['"`]/,
+                    /sessionStorage\.getItem\(['"`][\w-]+-[\w-]+['"`]/
+                ];
+
+                return appScopedPatterns.some(pattern => pattern.test(code));
+            }
+
+            /**
+             * Provides safe alternatives for dangerous functions
+             * @param {string} dangerousFunction - Name of dangerous function
+             * @returns {string} Suggestion for safe alternative
+             */
+            static getSafeAlternative(dangerousFunction) {
+                const alternatives = {
+                    'eval': 'Use JSON.parse() for data or redesign logic to avoid eval()',
+                    'function(': 'Use regular function declarations or arrow functions',
+                    'settimeout(': 'Pass a function reference instead of a string to setTimeout',
+                    'setinterval(': 'Pass a function reference instead of a string to setInterval',
+                    'innerhtml': 'Use textContent, createElement(), or appendChild() for safe DOM manipulation',
+                    'outerhtml': 'Use createElement() and replaceChild() for safer DOM replacement',
+                    'document.write': 'Use createElement() and appendChild() for DOM manipulation',
+                    'document.writeln': 'Use createElement() and appendChild() for DOM manipulation'
+                };
+
+                return alternatives[dangerousFunction] || 'Consider a safer alternative';
+            }
+
+            /**
+             * Sanitizes app code by removing or replacing dangerous patterns
+             * @param {Object} appData - App data to sanitize
+             * @returns {Object} Sanitized app data
+             */
+            static sanitizeApp(appData) {
+                const sanitized = { ...appData };
+
+                if (sanitized.html) {
+                    sanitized.html = this.sanitizeHTML(sanitized.html);
+                }
+
+                if (sanitized.javascript) {
+                    sanitized.javascript = this.sanitizeJavaScript(sanitized.javascript);
+                }
+
+                return sanitized;
+            }
+
+            /**
+             * Sanitizes HTML by removing dangerous elements
+             * @param {string} html - HTML to sanitize
+             * @returns {string} Sanitized HTML
+             */
+            static sanitizeHTML(html) {
+                // Remove script tags and their content
+                html = html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+                
+                // Remove javascript: URLs
+                html = html.replace(/javascript:/gi, '#');
+                
+                // Remove dangerous inline event handlers
+                html = html.replace(/\s*on\w+\s*=\s*["'][^"']*["']/gi, '');
+
+                return html;
+            }
+
+            /**
+             * Sanitizes JavaScript by removing dangerous functions
+             * @param {string} javascript - JavaScript to sanitize
+             * @returns {string} Sanitized JavaScript
+             */
+            static sanitizeJavaScript(javascript) {
+                // Comment out eval() calls
+                javascript = javascript.replace(/eval\s*\(/gi, '// BLOCKED: eval(');
+                
+                // Comment out document.write calls
+                javascript = javascript.replace(/document\.write(ln)?\s*\(/gi, '// BLOCKED: document.write(');
+                
+                return javascript;
+            }
+        }
+
+        /**
+         * Complexity Analyzer
+         * Analyzes request complexity and suggests simpler alternatives
+         */
+        class ComplexityAnalyzer {
+            /**
+             * Analyzes the complexity of a user request
+             * @param {string} request - User request
+             * @returns {Object} Complexity analysis result
+             */
+            static analyzeRequest(request) {
+                const lowerRequest = request.toLowerCase();
+                const complexity = {
+                    level: 'simple',
+                    score: 0,
+                    factors: [],
+                    suggestions: [],
+                    simplifiedVersion: null
+                };
+
+                // Check for complexity indicators
+                const complexityFactors = [
+                    { keywords: ['3d', 'three.js', 'webgl', 'graphics'], weight: 15, factor: '3D Graphics' },
+                    { keywords: ['real-time', 'realtime', 'multiplayer', 'socket'], weight: 12, factor: 'Real-time Features' },
+                    { keywords: ['ai', 'machine learning', 'neural', 'tensorflow'], weight: 20, factor: 'AI/ML Integration' },
+                    { keywords: ['blockchain', 'crypto', 'web3', 'ethereum'], weight: 18, factor: 'Blockchain Integration' },
+                    { keywords: ['video', 'streaming', 'webrtc', 'camera'], weight: 10, factor: 'Video Processing' },
+                    { keywords: ['database', 'sql', 'mongodb', 'firebase'], weight: 8, factor: 'Database Integration' },
+                    { keywords: ['api', 'fetch', 'ajax', 'rest'], weight: 5, factor: 'API Integration' },
+                    { keywords: ['game', 'physics', 'collision', 'animation'], weight: 8, factor: 'Game Mechanics' },
+                    { keywords: ['chart', 'graph', 'visualization', 'd3'], weight: 6, factor: 'Data Visualization' },
+                    { keywords: ['chat', 'messaging', 'communication'], weight: 7, factor: 'Communication Features' },
+                    { keywords: ['file upload', 'drag drop', 'file system'], weight: 6, factor: 'File Operations' },
+                    { keywords: ['audio', 'sound', 'music', 'webaudio'], weight: 7, factor: 'Audio Processing' },
+                    { keywords: ['canvas', 'drawing', 'paint', 'sketch'], weight: 5, factor: 'Canvas Operations' },
+                    { keywords: ['responsive', 'mobile', 'touch', 'gesture'], weight: 3, factor: 'Mobile Features' }
+                ];
+
+                // Calculate complexity score
+                complexityFactors.forEach(factor => {
+                    if (factor.keywords.some(keyword => lowerRequest.includes(keyword))) {
+                        complexity.score += factor.weight;
+                        complexity.factors.push(factor.factor);
+                    }
+                });
+
+                // Determine complexity level
+                if (complexity.score >= 15) {
+                    complexity.level = 'complex';
+                } else if (complexity.score >= 8) {
+                    complexity.level = 'moderate';
+                }
+
+                // Generate suggestions for complex requests
+                if (complexity.level === 'complex') {
+                    complexity.suggestions = this.generateSimplificationSuggestions(lowerRequest, complexity.factors);
+                    complexity.simplifiedVersion = this.generateSimplifiedVersion(lowerRequest);
+                }
+
+                return complexity;
+            }
+
+            /**
+             * Generates suggestions for simplifying complex requests
+             * @param {string} request - User request
+             * @param {Array} factors - Complexity factors found
+             * @returns {Array} Array of simplification suggestions
+             */
+            static generateSimplificationSuggestions(request, factors) {
+                const suggestions = [];
+
+                if (factors.includes('3D Graphics')) {
+                    suggestions.push('Start with a 2D version using HTML5 Canvas');
+                    suggestions.push('Use CSS transforms for simple 3D effects');
+                }
+
+                if (factors.includes('Real-time Features')) {
+                    suggestions.push('Begin with turn-based mechanics');
+                    suggestions.push('Use polling instead of WebSockets initially');
+                }
+
+                if (factors.includes('AI/ML Integration')) {
+                    suggestions.push('Start with rule-based logic');
+                    suggestions.push('Use pre-trained models via APIs later');
+                }
+
+                if (factors.includes('Game Mechanics')) {
+                    suggestions.push('Create a basic version without physics');
+                    suggestions.push('Add simple click-based interactions first');
+                }
+
+                if (factors.includes('Database Integration')) {
+                    suggestions.push('Use localStorage for data persistence');
+                    suggestions.push('Add server integration in a later version');
+                }
+
+                if (factors.includes('Video Processing') || factors.includes('Audio Processing')) {
+                    suggestions.push('Start with static media files');
+                    suggestions.push('Add recording features later');
+                }
+
+                // Add general suggestions
+                suggestions.push('Build core functionality first, then add advanced features');
+                suggestions.push('Test the basic version before adding complexity');
+
+                return suggestions;
+            }
+
+            /**
+             * Generates a simplified version of a complex request
+             * @param {string} request - Original request
+             * @returns {string} Simplified version description
+             */
+            static generateSimplifiedVersion(request) {
+                // Mapping of complex terms to simpler alternatives
+                const simplifications = {
+                    '3d game': '2D puzzle game',
+                    '3d graphics': '2D graphics with CSS effects',
+                    'real-time multiplayer': 'turn-based single player',
+                    'ai chatbot': 'rule-based FAQ system',
+                    'machine learning': 'simple algorithm-based logic',
+                    'video streaming': 'image gallery',
+                    'voice recognition': 'text input interface',
+                    'blockchain wallet': 'simple transaction tracker',
+                    'social media platform': 'basic message board',
+                    'video game': 'simple puzzle game',
+                    'music player': 'audio playlist interface',
+                    'drawing application': 'simple sketch pad'
+                };
+
+                let simplified = request.toLowerCase();
+                
+                Object.entries(simplifications).forEach(([complex, simple]) => {
+                    if (simplified.includes(complex)) {
+                        simplified = simplified.replace(complex, simple);
+                    }
+                });
+
+                return simplified;
+            }
+        }
+
+        /**
+         * Queue Manager
+         * Manages request queuing and background processing
+         */
+        class QueueManager {
+            static requestQueue = [];
+            static isProcessing = false;
+            static maxConcurrentRequests = 3;
+            static activeRequests = 0;
+
+            /**
+             * Adds a request to the processing queue
+             * @param {Object} request - Request object with type, data, and callback
+             */
+            static enqueue(request) {
+                request.id = Date.now() + Math.random();
+                request.timestamp = Date.now();
+                request.status = 'queued';
+                
+                this.requestQueue.push(request);
+                this.saveQueueToStorage();
+                this.processQueue();
+                
+                return request.id;
+            }
+
+            /**
+             * Processes the next items in the queue
+             */
+            static async processQueue() {
+                if (this.activeRequests >= this.maxConcurrentRequests) {
+                    return;
+                }
+
+                const nextRequest = this.requestQueue.find(req => req.status === 'queued');
+                if (!nextRequest) {
+                    return;
+                }
+
+                nextRequest.status = 'processing';
+                this.activeRequests++;
+                
+                try {
+                    await this.processRequest(nextRequest);
+                    nextRequest.status = 'completed';
+                } catch (error) {
+                    nextRequest.status = 'failed';
+                    nextRequest.error = error.message;
+                    console.error('Queue processing error:', error);
+                } finally {
+                    this.activeRequests--;
+                    this.removeFromQueue(nextRequest.id);
+                    this.saveQueueToStorage();
+                    
+                    // Process next item
+                    setTimeout(() => this.processQueue(), 100);
+                }
+            }
+
+            /**
+             * Processes a single request
+             * @param {Object} request - Request to process
+             */
+            static async processRequest(request) {
+                switch (request.type) {
+                    case 'ai-request':
+                        const response = await AIService.processRequest(request.data.userInput);
+                        if (request.callback) {
+                            request.callback(null, response);
+                        }
+                        break;
+                    case 'app-creation':
+                        await AppManager.createApp(request.data.appData);
+                        if (request.callback) {
+                            request.callback(null, { success: true });
+                        }
+                        break;
+                    case 'app-modification':
+                        await AppManager.modifyApp(request.data.appId, request.data.modifications);
+                        if (request.callback) {
+                            request.callback(null, { success: true });
+                        }
+                        break;
+                    default:
+                        throw new Error(`Unknown request type: ${request.type}`);
+                }
+            }
+
+            /**
+             * Removes a request from the queue
+             * @param {string} requestId - Request ID to remove
+             */
+            static removeFromQueue(requestId) {
+                this.requestQueue = this.requestQueue.filter(req => req.id !== requestId);
+            }
+
+            /**
+             * Gets the current queue status
+             * @returns {Object} Queue status information
+             */
+            static getQueueStatus() {
+                return {
+                    total: this.requestQueue.length,
+                    queued: this.requestQueue.filter(req => req.status === 'queued').length,
+                    processing: this.requestQueue.filter(req => req.status === 'processing').length,
+                    active: this.activeRequests,
+                    maxConcurrent: this.maxConcurrentRequests
+                };
+            }
+
+            /**
+             * Saves queue state to storage
+             */
+            static saveQueueToStorage() {
+                try {
+                    localStorage.setItem('marketplace-queue', JSON.stringify(this.requestQueue));
+                } catch (error) {
+                    console.error('Error saving queue to storage:', error);
+                }
+            }
+
+            /**
+             * Loads queue state from storage
+             */
+            static loadQueueFromStorage() {
+                try {
+                    const queueData = localStorage.getItem('marketplace-queue');
+                    if (queueData) {
+                        this.requestQueue = JSON.parse(queueData);
+                        // Reset processing status for any interrupted requests
+                        this.requestQueue.forEach(req => {
+                            if (req.status === 'processing') {
+                                req.status = 'queued';
+                            }
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error loading queue from storage:', error);
+                    this.requestQueue = [];
+                }
+            }
+
+            /**
+             * Clears the entire queue
+             */
+            static clearQueue() {
+                this.requestQueue = [];
+                this.activeRequests = 0;
+                this.saveQueueToStorage();
+            }
+        }
+
+        /**
+         * App Executor
+         * Safely executes generated app code in isolated contexts
+         */
+        class AppExecutor {
+            /**
+             * Executes an app's code in its designated container
+             * @param {Object} app - App object with HTML, CSS, and JavaScript
+             */
+            static async execute(app) {
+                const appContent = document.querySelector(`#app-${app.id} .app-content`);
+                if (!appContent) {
+                    throw new Error('App container not found');
+                }
+
+                try {
+                    // Clear previous content
+                    appContent.innerHTML = '';
+                    
+                    // Create isolated container for the app
+                    const appContainer = document.createElement('div');
+                    appContainer.className = 'app-runtime-container';
+                    appContainer.style.cssText = 'width: 100%; height: 100%; position: relative;';
+                    
+                    // Inject HTML
+                    if (app.html) {
+                        const htmlContainer = document.createElement('div');
+                        htmlContainer.innerHTML = app.html;
+                        appContainer.appendChild(htmlContainer);
+                    }
+                    
+                    // Inject CSS
+                    if (app.css) {
+                        const styleElement = document.createElement('style');
+                        styleElement.textContent = app.css;
+                        appContainer.appendChild(styleElement);
+                    }
+                    
+                    appContent.appendChild(appContainer);
+                    
+                    // Execute JavaScript in safe context
+                    if (app.javascript) {
+                        await this.executeJavaScript(app.javascript, appContainer, app.id);
+                    }
+                    
+                } catch (error) {
+                    console.error('Error executing app:', error);
+                    appContent.innerHTML = `<div style="color: red; padding: 20px;">Error: ${error.message}</div>`;
+                    throw error;
+                }
+            }
+
+            /**
+             * Safely executes JavaScript code with limited scope
+             * @param {string} code - JavaScript code to execute
+             * @param {HTMLElement} container - App container element
+             * @param {string} appId - App identifier
+             */
+            static async executeJavaScript(code, container, appId) {
+                try {
+                    // Create a safe execution context
+                    const safeContext = {
+                        container: container,
+                        appId: appId,
+                        document: document, // Controlled access to document
+                        console: console,   // Allow console access for debugging
+                        Math: Math,
+                        Date: Date,
+                        JSON: JSON,
+                        setTimeout: setTimeout,
+                        setInterval: setInterval,
+                        clearTimeout: clearTimeout,
+                        clearInterval: clearInterval
+                    };
+
+                    // Create function with limited scope
+                    const executeFunction = new Function(
+                        'context',
+                        `
+                        const { container, appId, document, console, Math, Date, JSON, setTimeout, setInterval, clearTimeout, clearInterval } = context;
+                        ${code}
+                        `
+                    );
+
+                    // Execute the code
+                    executeFunction(safeContext);
+                    
+                } catch (error) {
+                    console.error('JavaScript execution error:', error);
+                    throw new Error(`JavaScript error: ${error.message}`);
+                }
+            }
+        }
+
+        /**
+         * AI Service
+         * Integrates with Google Gemini AI for intelligent app generation and modification
+         */
+        class AIService {
+            static geminiApiKey = null;
+            static isConfigured = false;
+
+            /**
+             * Configures the Gemini API key
+             * @param {string} apiKey - Google Gemini API key
+             */
+            static configure(apiKey) {
+                this.geminiApiKey = apiKey;
+                this.isConfigured = true;
+                localStorage.setItem('gemini-api-key', apiKey);
+            }
+
+            /**
+             * Loads API key from localStorage if available
+             */
+            static loadConfig() {
+                const savedKey = localStorage.getItem('gemini-api-key');
+                if (savedKey) {
+                    this.geminiApiKey = savedKey;
+                    this.isConfigured = true;
+                }
+            }
+
+            /**
+             * Processes user requests using Gemini AI or fallback to local processing
+             * @param {string} userRequest - User's natural language request
+             * @returns {Object} AI response with message and optional action
+             */
+            static async processRequest(userRequest) {
+                try {
+                    // Try Gemini AI first if configured
+                    if (this.isConfigured && this.geminiApiKey) {
+                        return await this.processWithGemini(userRequest);
+                    } else {
+                        // Show API key prompt for first time users
+                        if (!this.hasShownApiPrompt) {
+                            this.hasShownApiPrompt = true;
+                            return {
+                                message: "🔑 **Gemini AI Integration Available!**\n\nTo enable full AI capabilities, please provide your Google Gemini API key by typing:\n\n`/api-key YOUR_API_KEY_HERE`\n\nOr continue with local AI simulation. You can get a free API key from: https://makersuite.google.com/app/apikey\n\nFor now, I'll use local processing for your request...",
+                                action: null
+                            };
+                        }
+                        // Fallback to local processing
+                        return await this.processLocally(userRequest);
+                    }
+                } catch (error) {
+                    console.error('AI processing error:', error);
+                    // Fallback to local processing on error
+                    return await this.processLocally(userRequest);
+                }
+            }
+
+            /**
+             * Processes request using Google Gemini AI
+             * @param {string} userRequest - User's natural language request
+             * @returns {Object} AI response with message and optional action
+             */
+            static async processWithGemini(userRequest) {
+                try {
+                    // Check for API key command
+                    if (userRequest.startsWith('/api-key ')) {
+                        const apiKey = userRequest.substring(9).trim();
+                        this.configure(apiKey);
+                        return {
+                            message: "✅ **Gemini AI API key configured successfully!**\n\nYou can now enjoy full AI-powered app generation. Try asking me to build something complex!",
+                            action: null
+                        };
+                    }
+
+                    const prompt = this.buildGeminiPrompt(userRequest);
+                    
+                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${this.geminiApiKey}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            contents: [{
+                                parts: [{
+                                    text: prompt
+                                }]
+                            }],
+                            generationConfig: {
+                                temperature: 0.7,
+                                topK: 40,
+                                topP: 0.95,
+                                maxOutputTokens: 2048,
+                            }
+                        })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`Gemini API error: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    const aiResponse = data.candidates[0].content.parts[0].text;
+                    
+                    return this.parseGeminiResponse(aiResponse, userRequest);
+                    
+                } catch (error) {
+                    console.error('Gemini API error:', error);
+                    return {
+                        message: "⚠️ Gemini AI is temporarily unavailable. Using local processing instead...",
+                        action: null
+                    };
+                }
+            }
+
+            /**
+             * Builds a comprehensive prompt for Gemini AI
+             * @param {string} userRequest - User's request
+             * @returns {string} Formatted prompt for Gemini
+             */
+            static buildGeminiPrompt(userRequest) {
+                const existingApps = Array.from(AppMarketplace.apps.values()).map(app => app.name).join(', ');
+                
+                return `You are an AI assistant for an autonomous app marketplace that creates web applications in real-time.
+
+CONTEXT:
+- Current apps in marketplace: ${existingApps || 'None'}
+- User request: "${userRequest}"
+- Target: Create simple DOM-based web apps using HTML, CSS, and JavaScript
+- Security: Apps run in the same page context, so code must be safe
+
+TASK:
+Analyze the user request and respond with a JSON object in this EXACT format:
+
+{
+  "type": "create|modify|delete|run|general",
+  "message": "Your response to the user (use markdown formatting)",
+  "complexity": "simple|moderate|complex",
+  "appData": {
+    "name": "App Name",
+    "description": "Brief description",
+    "html": "HTML code (if creating/modifying)",
+    "css": "CSS code (if creating/modifying)", 
+    "javascript": "JavaScript code (if creating/modifying)"
+  },
+  "suggestions": "Additional suggestions for complex apps"
+}
+
+RULES:
+1. For complex requests, create a simpler version and explain next steps
+2. Keep JavaScript simple - avoid external libraries, eval(), or dangerous functions
+3. Use only safe DOM manipulation and standard browser APIs
+4. For games, prefer turn-based over real-time when possible
+5. Always include user-friendly interfaces
+
+EXAMPLES:
+- "build a notepad" → type: "create", simple text editor
+- "add calculator memory" → type: "modify", enhance existing calculator  
+- "create a 3D game" → type: "create", complexity: "complex", build 2D version instead
+
+Respond with ONLY the JSON object, no additional text.`;
+            }
+
+            /**
+             * Parses Gemini AI response and converts to marketplace action
+             * @param {string} aiResponse - Raw response from Gemini
+             * @param {string} originalRequest - Original user request
+             * @returns {Object} Processed response with action
+             */
+            static parseGeminiResponse(aiResponse, originalRequest) {
+                try {
+                    // Extract JSON from response (in case there's additional text)
+                    const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
+                    if (!jsonMatch) {
+                        throw new Error('No JSON found in response');
+                    }
+                    
+                    const parsed = JSON.parse(jsonMatch[0]);
+                    
+                    let action = null;
+                    if (parsed.type === 'create' && parsed.appData) {
+                        action = {
+                            type: 'create',
+                            appData: parsed.appData
+                        };
+                    } else if (parsed.type === 'modify' && parsed.appData) {
+                        // Find target app for modification
+                        const targetApp = this.findTargetApp(originalRequest);
+                        if (targetApp) {
+                            action = {
+                                type: 'modify',
+                                appId: targetApp.id,
+                                modifications: {
+                                    html: parsed.appData.html || targetApp.html,
+                                    css: parsed.appData.css || targetApp.css,
+                                    javascript: parsed.appData.javascript || targetApp.javascript
+                                }
+                            };
+                        }
+                    }
+                    
+                    let message = parsed.message;
+                    if (parsed.complexity === 'complex' && parsed.suggestions) {
+                        message += `\n\n**🔮 Complexity Note:** This is a complex request. I've created a simpler version to get you started.\n\n**Next Steps:** ${parsed.suggestions}`;
+                    }
+                    
+                    return { message, action };
+                    
+                } catch (error) {
+                    console.error('Error parsing Gemini response:', error);
+                    // Fallback to local processing
+                    return this.processLocally(originalRequest);
+                }
+            }
+
+            /**
+             * Local processing fallback when Gemini is unavailable
+             * @param {string} userRequest - User's natural language request
+             * @returns {Object} AI response with message and optional action
+             */
+            static async processLocally(userRequest) {
+                // Simulate API delay
+                await this.delay(1000 + Math.random() * 2000);
+                
+                const request = userRequest.toLowerCase().trim();
+                
+                // Check for API key command
+                if (request.startsWith('/api-key ')) {
+                    const apiKey = request.substring(9).trim();
+                    this.configure(apiKey);
+                    return {
+                        message: "✅ **Gemini AI API key configured successfully!**\n\nYou can now enjoy full AI-powered app generation. Try asking me to build something!",
+                        action: null
+                    };
+                }
+                
+                // Parse different types of requests
+                if (this.isCreateRequest(request)) {
+                    return this.handleCreateRequest(request);
+                } else if (this.isModifyRequest(request)) {
+                    return this.handleModifyRequest(request);
+                } else if (this.isDeleteRequest(request)) {
+                    return this.handleDeleteRequest(request);
+                } else if (this.isRunRequest(request)) {
+                    return this.handleRunRequest(request);
+                } else {
+                    return this.handleGeneralRequest(request);
+                }
+            }
+
+            /**
+             * Finds target app for modification based on user request
+             * @param {string} request - User request
+             * @returns {Object|null} Target app object
+             */
+            static findTargetApp(request) {
+                const apps = Array.from(AppMarketplace.apps.values());
+                const lowerRequest = request.toLowerCase();
+                
+                // Look for app names in the request
+                for (const app of apps) {
+                    if (lowerRequest.includes(app.name.toLowerCase())) {
+                        return app;
+                    }
+                }
+                
+                // Look for app type keywords
+                if (lowerRequest.includes('calculator')) {
+                    return apps.find(app => app.name.toLowerCase().includes('calculator'));
+                } else if (lowerRequest.includes('notepad') || lowerRequest.includes('text')) {
+                    return apps.find(app => app.name.toLowerCase().includes('notepad'));
+                } else if (lowerRequest.includes('todo') || lowerRequest.includes('task')) {
+                    return apps.find(app => app.name.toLowerCase().includes('todo'));
+                } else if (lowerRequest.includes('snake') || lowerRequest.includes('ladder')) {
+                    return apps.find(app => app.name.toLowerCase().includes('snake'));
+                }
+                
+                return null;
+            }
+
+            /**
+             * Checks if request is for creating a new app
+             * @param {string} request - User request
+             * @returns {boolean} True if create request
+             */
+            static isCreateRequest(request) {
+                const createKeywords = ['build', 'create', 'make', 'generate', 'develop', 'design'];
+                return createKeywords.some(keyword => request.includes(keyword));
+            }
+
+            /**
+             * Checks if request is for modifying an existing app
+             * @param {string} request - User request
+             * @returns {boolean} True if modify request
+             */
+            static isModifyRequest(request) {
+                const modifyKeywords = ['modify', 'update', 'change', 'edit', 'improve', 'add', 'remove'];
+                return modifyKeywords.some(keyword => request.includes(keyword)) && 
+                       (request.includes('calculator') || request.includes('notepad') || request.includes('app') || request.includes('todo'));
+            }
+
+            /**
+             * Checks if request is for deleting an app
+             * @param {string} request - User request
+             * @returns {boolean} True if delete request
+             */
+            static isDeleteRequest(request) {
+                const deleteKeywords = ['delete', 'remove', 'destroy'];
+                return deleteKeywords.some(keyword => request.includes(keyword));
+            }
+
+            /**
+             * Checks if request is for running an app
+             * @param {string} request - User request
+             * @returns {boolean} True if run request
+             */
+            static isRunRequest(request) {
+                const runKeywords = ['run', 'start', 'launch', 'execute'];
+                return runKeywords.some(keyword => request.includes(keyword));
+            }
+
+            /**
+             * Handles app creation requests
+             * @param {string} request - User request
+             * @returns {Object} AI response with create action
+             */
+            static handleCreateRequest(request) {
+                if (request.includes('notepad') || request.includes('text editor')) {
+                    return {
+                        message: "I'll create a notepad app for you! This will be a simple text editor with save/load functionality.",
+                        action: {
+                            type: 'create',
+                            appData: this.generateNotepadApp()
+                        }
+                    };
+                } else if (request.includes('calculator')) {
+                    const includesSquareRoot = request.includes('square root') || request.includes('sqrt');
+                    return {
+                        message: `I'll create a calculator app${includesSquareRoot ? ' with square root functionality' : ''} for you!`,
+                        action: {
+                            type: 'create',
+                            appData: this.generateCalculatorApp(includesSquareRoot)
+                        }
+                    };
+                } else if (request.includes('snake') && request.includes('ladder')) {
+                    return {
+                        message: "I'll create a Snake and Ladder game for you! This will be a digital version of the classic board game.",
+                        action: {
+                            type: 'create',
+                            appData: this.generateSnakeLadderGame()
+                        }
+                    };
+                } else if (request.includes('todo') || request.includes('task')) {
+                    return {
+                        message: "I'll create a Todo List app for you! You can add, complete, and delete tasks.",
+                        action: {
+                            type: 'create',
+                            appData: this.generateTodoApp()
+                        }
+                    };
+                } else {
+                    return {
+                        message: "I can help you create various apps! Try asking for:\n• A notepad app\n• A calculator\n• A Snake and Ladder game\n• A todo list app\n\nWhat would you like me to build?"
+                    };
+                }
+            }
+
+            /**
+             * Handles app modification requests
+             * @param {string} request - User request
+             * @returns {Object} AI response with modify action
+             */
+            static handleModifyRequest(request) {
+                const apps = Array.from(AppMarketplace.apps.values());
+                
+                if (request.includes('calculator')) {
+                    const calculatorApp = apps.find(app => app.name.toLowerCase().includes('calculator'));
+                    if (calculatorApp) {
+                        if (request.includes('square root') || request.includes('sqrt')) {
+                            return {
+                                message: "I'll add square root functionality to your calculator!",
+                                action: {
+                                    type: 'modify',
+                                    appId: calculatorApp.id,
+                                    modifications: {
+                                        javascript: this.getCalculatorJSWithSquareRoot()
+                                    }
+                                }
+                            };
+                        } else if (request.includes('memory')) {
+                            return {
+                                message: "I'll add memory functions (M+, M-, MR, MC) to your calculator!",
+                                action: {
+                                    type: 'modify',
+                                    appId: calculatorApp.id,
+                                    modifications: {
+                                        html: this.getCalculatorHTMLWithMemory(),
+                                        javascript: this.getCalculatorJSWithMemory()
+                                    }
+                                }
+                            };
+                        }
+                    } else {
+                        return {
+                            message: "I don't see a calculator app to modify. Would you like me to create one first?"
+                        };
+                    }
+                }
+                
+                return {
+                    message: "I can help modify your existing apps! What specific changes would you like to make?"
+                };
+            }
+
+            /**
+             * Handles general conversation requests
+             * @param {string} request - User request
+             * @returns {Object} AI response
+             */
+            static handleGeneralRequest(request) {
+                if (request.includes('hello') || request.includes('hi')) {
+                    return {
+                        message: "Hello! I'm your AI assistant for the App Marketplace. I can help you build, modify, and manage web applications. What would you like to create today?"
+                    };
+                } else if (request.includes('help')) {
+                    return {
+                        message: "I can help you with:\n\n🔨 **Creating apps**: \"Build a calculator\", \"Make a notepad app\"\n\n✏️ **Modifying apps**: \"Add square root to the calculator\", \"Improve the notepad\"\n\n🗑️ **Managing apps**: \"Delete the calculator\", \"Run the notepad app\"\n\nJust tell me what you want to do in natural language!"
+                    };
+                } else {
+                    return {
+                        message: "I'm not sure how to help with that. Try asking me to build an app, modify an existing one, or ask for help to see what I can do!"
+                    };
+                }
+            }
+
+            /**
+             * Simulates API delay
+             * @param {number} ms - Milliseconds to delay
+             */
+            static delay(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+
+            // App generation methods will be added in the next section...
+            
+            /**
+             * Generates a notepad app configuration
+             * @returns {Object} App configuration
+             */
+            static generateNotepadApp() {
+                return {
+                    name: "Notepad",
+                    description: "Simple text editor with save/load functionality",
+                    html: `
+                        <div style="height: 100%; display: flex; flex-direction: column;">
+                            <div style="padding: 10px; background: #f5f5f5; border-bottom: 1px solid #ddd;">
+                                <button onclick="saveText()" style="margin-right: 10px; padding: 5px 10px;">Save</button>
+                                <button onclick="loadText()" style="margin-right: 10px; padding: 5px 10px;">Load</button>
+                                <button onclick="clearText()" style="padding: 5px 10px;">Clear</button>
+                            </div>
+                            <textarea id="notepadText" placeholder="Start typing your notes here..." 
+                                style="flex: 1; border: none; padding: 15px; font-family: monospace; resize: none; outline: none;"></textarea>
+                        </div>
+                    `,
+                    css: ``,
+                    javascript: `
+                        function saveText() {
+                            const text = document.getElementById('notepadText').value;
+                            localStorage.setItem('notepad-content', text);
+                            alert('Text saved!');
+                        }
+                        
+                        function loadText() {
+                            const savedText = localStorage.getItem('notepad-content');
+                            if (savedText) {
+                                document.getElementById('notepadText').value = savedText;
+                                alert('Text loaded!');
+                            } else {
+                                alert('No saved text found!');
+                            }
+                        }
+                        
+                        function clearText() {
+                            if (confirm('Are you sure you want to clear all text?')) {
+                                document.getElementById('notepadText').value = '';
+                            }
+                        }
+                    `
+                };
+            }
+
+            /**
+             * Generates a calculator app configuration
+             * @param {boolean} includeSquareRoot - Whether to include square root function
+             * @returns {Object} App configuration
+             */
+            static generateCalculatorApp(includeSquareRoot = false) {
+                const baseHTML = `
+                    <div style="width: 300px; margin: 0 auto; padding: 20px; background: #2c3e50; border-radius: 10px;">
+                        <div id="display" style="background: #1a252f; color: #ecf0f1; padding: 15px; margin-bottom: 10px; text-align: right; font-size: 24px; border-radius: 5px; min-height: 40px;">0</div>
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;">
+                            <button onclick="clearDisplay()" style="grid-column: span 2; padding: 15px; font-size: 16px; background: #e74c3c; color: white; border: none; border-radius: 5px; cursor: pointer;">Clear</button>
+                            <button onclick="deleteLast()" style="padding: 15px; font-size: 16px; background: #f39c12; color: white; border: none; border-radius: 5px; cursor: pointer;">Del</button>
+                            <button onclick="operation('/')" style="padding: 15px; font-size: 16px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer;">÷</button>
+                            
+                            <button onclick="appendNumber('7')" style="padding: 15px; font-size: 16px; background: #34495e; color: white; border: none; border-radius: 5px; cursor: pointer;">7</button>
+                            <button onclick="appendNumber('8')" style="padding: 15px; font-size: 16px; background: #34495e; color: white; border: none; border-radius: 5px; cursor: pointer;">8</button>
+                            <button onclick="appendNumber('9')" style="padding: 15px; font-size: 16px; background: #34495e; color: white; border: none; border-radius: 5px; cursor: pointer;">9</button>
+                            <button onclick="operation('*')" style="padding: 15px; font-size: 16px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer;">×</button>
+                            
+                            <button onclick="appendNumber('4')" style="padding: 15px; font-size: 16px; background: #34495e; color: white; border: none; border-radius: 5px; cursor: pointer;">4</button>
+                            <button onclick="appendNumber('5')" style="padding: 15px; font-size: 16px; background: #34495e; color: white; border: none; border-radius: 5px; cursor: pointer;">5</button>
+                            <button onclick="appendNumber('6')" style="padding: 15px; font-size: 16px; background: #34495e; color: white; border: none; border-radius: 5px; cursor: pointer;">6</button>
+                            <button onclick="operation('-')" style="padding: 15px; font-size: 16px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer;">-</button>
+                            
+                            <button onclick="appendNumber('1')" style="padding: 15px; font-size: 16px; background: #34495e; color: white; border: none; border-radius: 5px; cursor: pointer;">1</button>
+                            <button onclick="appendNumber('2')" style="padding: 15px; font-size: 16px; background: #34495e; color: white; border: none; border-radius: 5px; cursor: pointer;">2</button>
+                            <button onclick="appendNumber('3')" style="padding: 15px; font-size: 16px; background: #34495e; color: white; border: none; border-radius: 5px; cursor: pointer;">3</button>
+                            <button onclick="operation('+')" style="padding: 15px; font-size: 16px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer;">+</button>
+                            
+                            <button onclick="appendNumber('0')" style="grid-column: span 2; padding: 15px; font-size: 16px; background: #34495e; color: white; border: none; border-radius: 5px; cursor: pointer;">0</button>
+                            <button onclick="appendNumber('.')" style="padding: 15px; font-size: 16px; background: #34495e; color: white; border: none; border-radius: 5px; cursor: pointer;">.</button>
+                            <button onclick="calculate()" style="padding: 15px; font-size: 16px; background: #27ae60; color: white; border: none; border-radius: 5px; cursor: pointer;">=</button>
+                            ${includeSquareRoot ? '<button onclick="squareRoot()" style="grid-column: span 2; padding: 15px; font-size: 16px; background: #9b59b6; color: white; border: none; border-radius: 5px; cursor: pointer;">√</button>' : ''}
+                        </div>
+                    </div>
+                `;
+
+                const baseJS = `
+                    let currentInput = '';
+                    let operator = '';
+                    let previousInput = '';
+                    
+                    function updateDisplay() {
+                        const display = document.getElementById('display');
+                        display.textContent = currentInput || '0';
+                    }
+                    
+                    function appendNumber(number) {
+                        if (currentInput.length < 10) {
+                            currentInput += number;
+                            updateDisplay();
+                        }
+                    }
+                    
+                    function operation(op) {
+                        if (currentInput === '') return;
+                        if (previousInput !== '' && operator !== '') {
+                            calculate();
+                        }
+                        operator = op;
+                        previousInput = currentInput;
+                        currentInput = '';
+                    }
+                    
+                    function calculate() {
+                        if (previousInput === '' || currentInput === '' || operator === '') return;
+                        
+                        let result;
+                        const prev = parseFloat(previousInput);
+                        const current = parseFloat(currentInput);
+                        
+                        switch (operator) {
+                            case '+':
+                                result = prev + current;
+                                break;
+                            case '-':
+                                result = prev - current;
+                                break;
+                            case '*':
+                                result = prev * current;
+                                break;
+                            case '/':
+                                result = current !== 0 ? prev / current : 'Error';
+                                break;
+                            default:
+                                return;
+                        }
+                        
+                        currentInput = result.toString();
+                        operator = '';
+                        previousInput = '';
+                        updateDisplay();
+                    }
+                    
+                    function clearDisplay() {
+                        currentInput = '';
+                        operator = '';
+                        previousInput = '';
+                        updateDisplay();
+                    }
+                    
+                    function deleteLast() {
+                        currentInput = currentInput.slice(0, -1);
+                        updateDisplay();
+                    }
+                `;
+
+                const squareRootJS = includeSquareRoot ? `
+                    function squareRoot() {
+                        if (currentInput === '') return;
+                        const num = parseFloat(currentInput);
+                        if (num < 0) {
+                            currentInput = 'Error';
+                        } else {
+                            currentInput = Math.sqrt(num).toString();
+                        }
+                        updateDisplay();
+                    }
+                ` : '';
+
+                return {
+                    name: "Calculator",
+                    description: "Basic calculator with arithmetic operations" + (includeSquareRoot ? " and square root" : ""),
+                    html: baseHTML,
+                    css: ``,
+                    javascript: baseJS + squareRootJS
+                };
+            }
+
+            /**
+             * Generates a Snake and Ladder game configuration
+             * @returns {Object} App configuration
+             */
+            static generateSnakeLadderGame() {
+                return {
+                    name: "Snake and Ladder",
+                    description: "Classic board game with digital dice",
+                    html: `
+                        <div style="text-align: center; padding: 20px;">
+                            <h3 style="margin-bottom: 20px; color: #2c3e50;">Snake and Ladder Game</h3>
+                            <div style="margin-bottom: 20px;">
+                                <div>Player 1 Position: <span id="player1Pos" style="font-weight: bold; color: #e74c3c;">1</span></div>
+                                <div>Player 2 Position: <span id="player2Pos" style="font-weight: bold; color: #3498db;">1</span></div>
+                                <div style="margin-top: 10px;">Current Turn: <span id="currentTurn" style="font-weight: bold;">Player 1</span></div>
+                            </div>
+                            <canvas id="gameBoard" width="400" height="400" style="border: 2px solid #2c3e50; background: #ecf0f1;"></canvas>
+                            <div style="margin-top: 20px;">
+                                <button onclick="rollDice()" id="rollButton" style="padding: 10px 20px; font-size: 16px; background: #27ae60; color: white; border: none; border-radius: 5px; cursor: pointer;">Roll Dice</button>
+                                <div style="margin-top: 10px;">Dice: <span id="diceValue" style="font-size: 24px; font-weight: bold;">-</span></div>
+                            </div>
+                            <div id="gameMessage" style="margin-top: 15px; font-weight: bold; min-height: 20px;"></div>
+                        </div>
+                    `,
+                    css: ``,
+                    javascript: `
+                        let player1Pos = 1;
+                        let player2Pos = 1;
+                        let currentPlayer = 1;
+                        let gameWon = false;
+                        
+                        const snakes = {30: 7, 50: 34, 62: 19, 95: 75, 99: 78};
+                        const ladders = {4: 14, 9: 31, 20: 38, 28: 84, 40: 59, 51: 67, 63: 81, 71: 91};
+                        
+                        const canvas = document.getElementById('gameBoard');
+                        const ctx = canvas.getContext('2d');
+                        
+                        function drawBoard() {
+                            ctx.clearRect(0, 0, 400, 400);
+                            
+                            // Draw grid
+                            for (let i = 0; i <= 10; i++) {
+                                ctx.beginPath();
+                                ctx.moveTo(i * 40, 0);
+                                ctx.lineTo(i * 40, 400);
+                                ctx.moveTo(0, i * 40);
+                                ctx.lineTo(400, i * 40);
+                                ctx.strokeStyle = '#bdc3c7';
+                                ctx.stroke();
+                            }
+                            
+                            // Draw numbers
+                            ctx.fillStyle = '#2c3e50';
+                            ctx.font = '12px Arial';
+                            for (let i = 1; i <= 100; i++) {
+                                const pos = getPosition(i);
+                                ctx.fillText(i.toString(), pos.x + 5, pos.y + 15);
+                            }
+                            
+                            // Draw snakes
+                            ctx.strokeStyle = '#e74c3c';
+                            ctx.lineWidth = 3;
+                            for (const [head, tail] of Object.entries(snakes)) {
+                                const headPos = getPosition(parseInt(head));
+                                const tailPos = getPosition(tail);
+                                ctx.beginPath();
+                                ctx.moveTo(headPos.x + 20, headPos.y + 20);
+                                ctx.lineTo(tailPos.x + 20, tailPos.y + 20);
+                                ctx.stroke();
+                            }
+                            
+                            // Draw ladders
+                            ctx.strokeStyle = '#f39c12';
+                            ctx.lineWidth = 3;
+                            for (const [bottom, top] of Object.entries(ladders)) {
+                                const bottomPos = getPosition(parseInt(bottom));
+                                const topPos = getPosition(top);
+                                ctx.beginPath();
+                                ctx.moveTo(bottomPos.x + 20, bottomPos.y + 20);
+                                ctx.lineTo(topPos.x + 20, topPos.y + 20);
+                                ctx.stroke();
+                            }
+                            
+                            // Draw players
+                            ctx.lineWidth = 1;
+                            const p1Pos = getPosition(player1Pos);
+                            const p2Pos = getPosition(player2Pos);
+                            
+                            ctx.fillStyle = '#e74c3c';
+                            ctx.beginPath();
+                            ctx.arc(p1Pos.x + 10, p1Pos.y + 30, 8, 0, 2 * Math.PI);
+                            ctx.fill();
+                            
+                            ctx.fillStyle = '#3498db';
+                            ctx.beginPath();
+                            ctx.arc(p2Pos.x + 30, p2Pos.y + 30, 8, 0, 2 * Math.PI);
+                            ctx.fill();
+                        }
+                        
+                        function getPosition(num) {
+                            const row = Math.floor((num - 1) / 10);
+                            const col = (num - 1) % 10;
+                            const y = 360 - (row * 40);
+                            const x = row % 2 === 0 ? col * 40 : (9 - col) * 40;
+                            return {x, y};
+                        }
+                        
+                        function rollDice() {
+                            if (gameWon) return;
+                            
+                            const dice = Math.floor(Math.random() * 6) + 1;
+                            document.getElementById('diceValue').textContent = dice;
+                            
+                            if (currentPlayer === 1) {
+                                movePlayer(1, dice);
+                            } else {
+                                movePlayer(2, dice);
+                            }
+                            
+                            currentPlayer = currentPlayer === 1 ? 2 : 1;
+                            document.getElementById('currentTurn').textContent = 'Player ' + currentPlayer;
+                        }
+                        
+                        function movePlayer(player, steps) {
+                            let newPos;
+                            if (player === 1) {
+                                newPos = Math.min(player1Pos + steps, 100);
+                                player1Pos = newPos;
+                                document.getElementById('player1Pos').textContent = newPos;
+                            } else {
+                                newPos = Math.min(player2Pos + steps, 100);
+                                player2Pos = newPos;
+                                document.getElementById('player2Pos').textContent = newPos;
+                            }
+                            
+                            // Check for snakes and ladders
+                            if (snakes[newPos]) {
+                                newPos = snakes[newPos];
+                                document.getElementById('gameMessage').textContent = 'Player ' + player + ' got bitten by a snake!';
+                                if (player === 1) {
+                                    player1Pos = newPos;
+                                    document.getElementById('player1Pos').textContent = newPos;
+                                } else {
+                                    player2Pos = newPos;
+                                    document.getElementById('player2Pos').textContent = newPos;
+                                }
+                            } else if (ladders[newPos]) {
+                                newPos = ladders[newPos];
+                                document.getElementById('gameMessage').textContent = 'Player ' + player + ' climbed a ladder!';
+                                if (player === 1) {
+                                    player1Pos = newPos;
+                                    document.getElementById('player1Pos').textContent = newPos;
+                                } else {
+                                    player2Pos = newPos;
+                                    document.getElementById('player2Pos').textContent = newPos;
+                                }
+                            } else {
+                                document.getElementById('gameMessage').textContent = '';
+                            }
+                            
+                            // Check for win
+                            if (newPos === 100) {
+                                document.getElementById('gameMessage').textContent = 'Player ' + player + ' wins!';
+                                gameWon = true;
+                                document.getElementById('rollButton').disabled = true;
+                            }
+                            
+                            drawBoard();
+                        }
+                        
+                        // Initialize game
+                        drawBoard();
+                    `
+                };
+            }
+
+            /**
+             * Generates a todo list app configuration
+             * @returns {Object} App configuration
+             */
+            static generateTodoApp() {
+                return {
+                    name: "Todo List",
+                    description: "Simple task management app",
+                    html: `
+                        <div style="max-width: 400px; margin: 0 auto; padding: 20px; background: #f8f9fa; border-radius: 10px;">
+                            <h3 style="text-align: center; color: #2c3e50; margin-bottom: 20px;">My Todo List</h3>
+                            <div style="display: flex; margin-bottom: 20px;">
+                                <input type="text" id="todoInput" placeholder="Add a new task..." 
+                                    style="flex: 1; padding: 10px; border: 2px solid #e9ecef; border-radius: 5px 0 0 5px; outline: none;">
+                                <button onclick="addTodo()" style="padding: 10px 15px; background: #28a745; color: white; border: none; border-radius: 0 5px 5px 0; cursor: pointer;">Add</button>
+                            </div>
+                            <ul id="todoList" style="list-style: none; padding: 0; margin: 0;"></ul>
+                            <div style="text-align: center; margin-top: 20px; color: #6c757d;">
+                                <span id="todoCount">0 tasks</span>
+                            </div>
+                        </div>
+                    `,
+                    css: ``,
+                    javascript: `
+                        let todos = [];
+                        let todoIdCounter = 1;
+                        
+                        function addTodo() {
+                            const input = document.getElementById('todoInput');
+                            const text = input.value.trim();
+                            
+                            if (text === '') return;
+                            
+                            const todo = {
+                                id: todoIdCounter++,
+                                text: text,
+                                completed: false
+                            };
+                            
+                            todos.push(todo);
+                            input.value = '';
+                            renderTodos();
+                        }
+                        
+                        function toggleTodo(id) {
+                            const todo = todos.find(t => t.id === id);
+                            if (todo) {
+                                todo.completed = !todo.completed;
+                                renderTodos();
+                            }
+                        }
+                        
+                        function deleteTodo(id) {
+                            todos = todos.filter(t => t.id !== id);
+                            renderTodos();
+                        }
+                        
+                        function renderTodos() {
+                            const list = document.getElementById('todoList');
+                            const count = document.getElementById('todoCount');
+                            
+                            list.innerHTML = '';
+                            
+                            todos.forEach(todo => {
+                                const li = document.createElement('li');
+                                li.style.cssText = 'background: white; margin-bottom: 10px; padding: 15px; border-radius: 5px; display: flex; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1);';
+                                
+                                li.innerHTML = \`
+                                    <input type="checkbox" \${todo.completed ? 'checked' : ''} 
+                                        onchange="toggleTodo(\${todo.id})" 
+                                        style="margin-right: 10px; transform: scale(1.2);">
+                                    <span style="flex: 1; \${todo.completed ? 'text-decoration: line-through; color: #6c757d;' : 'color: #2c3e50;'}">\${todo.text}</span>
+                                    <button onclick="deleteTodo(\${todo.id})" 
+                                        style="background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer;">Delete</button>
+                                \`;
+                                
+                                list.appendChild(li);
+                            });
+                            
+                            const totalTasks = todos.length;
+                            const completedTasks = todos.filter(t => t.completed).length;
+                            count.textContent = \`\${totalTasks} task\${totalTasks !== 1 ? 's' : ''}\${completedTasks > 0 ? \` (\${completedTasks} completed)\` : ''}\`;
+                        }
+                        
+                        // Allow Enter key to add todo
+                        document.getElementById('todoInput').addEventListener('keypress', function(e) {
+                            if (e.key === 'Enter') {
+                                addTodo();
+                            }
+                        });
+                        
+                        // Initial render
+                        renderTodos();
+                    `
+                };
+            }
+
+            // Additional helper methods for app modifications
+            static getCalculatorJSWithSquareRoot() {
+                return `
+                    let currentInput = '';
+                    let operator = '';
+                    let previousInput = '';
+                    
+                    function updateDisplay() {
+                        const display = document.getElementById('display');
+                        display.textContent = currentInput || '0';
+                    }
+                    
+                    function appendNumber(number) {
+                        if (currentInput.length < 10) {
+                            currentInput += number;
+                            updateDisplay();
+                        }
+                    }
+                    
+                    function operation(op) {
+                        if (currentInput === '') return;
+                        if (previousInput !== '' && operator !== '') {
+                            calculate();
+                        }
+                        operator = op;
+                        previousInput = currentInput;
+                        currentInput = '';
+                    }
+                    
+                    function calculate() {
+                        if (previousInput === '' || currentInput === '' || operator === '') return;
+                        
+                        let result;
+                        const prev = parseFloat(previousInput);
+                        const current = parseFloat(currentInput);
+                        
+                        switch (operator) {
+                            case '+':
+                                result = prev + current;
+                                break;
+                            case '-':
+                                result = prev - current;
+                                break;
+                            case '*':
+                                result = prev * current;
+                                break;
+                            case '/':
+                                result = current !== 0 ? prev / current : 'Error';
+                                break;
+                            default:
+                                return;
+                        }
+                        
+                        currentInput = result.toString();
+                        operator = '';
+                        previousInput = '';
+                        updateDisplay();
+                    }
+                    
+                    function clearDisplay() {
+                        currentInput = '';
+                        operator = '';
+                        previousInput = '';
+                        updateDisplay();
+                    }
+                    
+                    function deleteLast() {
+                        currentInput = currentInput.slice(0, -1);
+                        updateDisplay();
+                    }
+                    
+                    function squareRoot() {
+                        if (currentInput === '') return;
+                        const num = parseFloat(currentInput);
+                        if (num < 0) {
+                            currentInput = 'Error';
+                        } else {
+                            currentInput = Math.sqrt(num).toString();
+                        }
+                        updateDisplay();
+                    }
+                `;
+            }
+        }
+
+        // Initialize the application
+        let conversationManager;
+
+        // Global functions for UI interactions
+        function sendMessage() {
+            if (conversationManager) {
+                conversationManager.sendMessage();
+            }
+        }
+
+        function handleImport(input) {
+            const file = input.files[0];
+            if (file) {
+                AppManager.importApps(file);
+                input.value = ''; // Reset input
+            }
+        }
+
+        function clearAllData() {
+            if (confirm('Are you sure you want to clear all apps and data? This cannot be undone.')) {
+                AppMarketplace.apps.clear();
+                AppMarketplace.runningApps.clear();
+                localStorage.removeItem('marketplace-apps');
+                localStorage.removeItem('marketplace-last-saved');
+                
+                // Clear UI
+                document.getElementById('appsContainer').innerHTML = '<div style="text-align: center; color: #666; padding: 40px;">No apps created yet. Start by asking the AI to build something!</div>';
+                AppManager.updateAppCount();
+                
+                conversationManager.addMessage('🗑️ **All data cleared successfully**', 'system');
+            }
+        }
+
+        function showApiKeyPrompt() {
+            const currentKey = AIService.geminiApiKey;
+            const action = currentKey ? 'update' : 'set';
+            
+            conversationManager.addMessage(`🔑 **Gemini AI Setup**\n\nTo ${action} your API key, type:\n\n\`/api-key YOUR_API_KEY_HERE\`\n\nGet a free API key from: https://makersuite.google.com/app/apikey\n\n${currentKey ? 'Current key: ' + currentKey.substring(0, 8) + '...' : 'No API key configured'}`, 'ai');
+        }
+
+        function updateStatusIndicators() {
+            // Update AI status
+            const aiStatusDot = document.getElementById('aiStatusDot');
+            const aiStatusText = document.getElementById('aiStatusText');
+            
+            if (AIService.isConfigured) {
+                aiStatusDot.className = 'status-dot green';
+                aiStatusText.textContent = 'Gemini';
+            } else {
+                aiStatusDot.className = 'status-dot yellow';
+                aiStatusText.textContent = 'Local';
+            }
+            
+            // Update queue status
+            const queueStatus = QueueManager.getQueueStatus();
+            const queueStatusElement = document.getElementById('queueStatus');
+            const queueText = document.getElementById('queueText');
+            const queueDot = queueStatusElement.querySelector('.status-dot');
+            
+            if (queueStatus.total > 0) {
+                queueDot.className = 'status-dot yellow';
+                queueText.textContent = `${queueStatus.queued}Q ${queueStatus.processing}P`;
+            } else {
+                queueDot.className = 'status-dot green';
+                queueText.textContent = 'Ready';
+            }
+        }
+
+        // Update status indicators periodically
+        setInterval(updateStatusIndicators, 2000);
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            conversationManager = new ConversationManager();
+            
+            // Load API configuration
+            AIService.loadConfig();
+            
+            // Load queue state
+            QueueManager.loadQueueFromStorage();
+            
+            // Load saved apps
+            AppManager.loadFromStorage();
+            
+            console.log('Autonomous App Marketplace initialized successfully!');
+            
+            // Show welcome message with status
+            const hasApps = AppMarketplace.apps.size > 0;
+            const hasApiKey = AIService.isConfigured;
+            const queueStatus = QueueManager.getQueueStatus();
+            
+            let statusMessage = '🚀 **Welcome to the Enhanced Autonomous App Marketplace!**\n\n';
+            statusMessage += `**New Features:**\n`;
+            statusMessage += `• 🤖 **Gemini AI Integration** ${hasApiKey ? '(Configured ✅)' : '(Setup Required 🔧)'}\n`;
+            statusMessage += `• 🛡️ **Security Validation** - All code is automatically validated\n`;
+            statusMessage += `• 💾 **Persistent Storage** - Apps are saved across sessions\n`;
+            statusMessage += `• 📊 **Complexity Analysis** - Get simpler versions of complex requests\n`;
+            statusMessage += `• 🔄 **Queue Management** - Background processing for complex operations\n\n`;
+            
+            if (hasApps) {
+                statusMessage += `📁 **Loaded ${AppMarketplace.apps.size} saved apps**\n`;
+            }
+            
+            if (queueStatus.total > 0) {
+                statusMessage += `⏳ **Restored ${queueStatus.total} queued requests**\n`;
+            }
+            
+            statusMessage += `\n**Try saying:**\n`;
+            statusMessage += `• "Build a weather widget"\n`;
+            statusMessage += `• "Create a password generator"\n`;
+            statusMessage += `• "Make a music player interface"\n`;
+            statusMessage += `• "Build a complex 3D game" (I'll suggest a simpler alternative!)\n\n`;
+            
+            if (!hasApiKey) {
+                statusMessage += `💡 **Tip**: Click "🔑 Setup Gemini AI" for enhanced AI capabilities!`;
+            }
+            
+            setTimeout(() => {
+                conversationManager.addMessage(statusMessage, 'ai');
+            }, 500);
+        });
+    </script>
+</body>
+</html>
