@@ -160,7 +160,7 @@ getQueueStatus() → {total, queued, processing, active}
 
 ```javascript
 // API Key Configuration (manually set)
-static geminiApiKey = "AIzaSyC0wXaVRd1UvnXjGEhKycpqy37VCu4wFl8";
+static geminiApiKey = "";
 static isConfigured = false; // Will be auto-set to true
 
 // Endpoint Update

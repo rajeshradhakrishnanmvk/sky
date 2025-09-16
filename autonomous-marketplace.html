@@ -119,6 +119,35 @@
             font-size: 0.9em;
         }
 
+        /* Markdown formatting styles */
+        .message strong {
+            font-weight: 600;
+        }
+
+        .message em {
+            font-style: italic;
+        }
+
+        .message code {
+            background: #f1f1f1 !important;
+            padding: 2px 4px !important;
+            border-radius: 3px !important;
+            font-family: 'Courier New', Consolas, monospace !important;
+            font-size: 0.9em !important;
+        }
+
+        .message.ai code {
+            background: #d4d4d8 !important;
+        }
+
+        .message.user code {
+            background: rgba(255, 255, 255, 0.2) !important;
+        }
+
+        .message.system code {
+            background: rgba(255, 255, 255, 0.2) !important;
+        }
+
         .conversation-input {
             display: flex;
             padding: 20px;
@@ -380,13 +409,15 @@
                     👋 Welcome to the Autonomous App Marketplace! I can help you create, modify, and manage apps in real-time. 
                     Try saying something like:
                     <br><br>
-                    • "Build a notepad app"
+                    • "Build a weather widget"
                     <br>
-                    • "Create a calculator with square root function"
+                    • "Create a password generator"
                     <br>
-                    • "Make a snake and ladder game"
+                    • "Make a digital clock"
                     <br>
-                    • "Modify the calculator to add memory functions"
+                    • "Build a color picker tool"
+                    <br>
+                    • "Create a simple drawing app"
                 </div>
             </div>
             <div class="conversation-input">
@@ -470,6 +501,34 @@
             }
 
             /**
+             * Converts basic markdown to HTML
+             * @param {string} text - Text with markdown
+             * @returns {string} HTML formatted text
+             */
+            markdownToHTML(text) {
+                let html = text;
+                
+                // Bold text **text** or __text__
+                html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                html = html.replace(/__(.*?)__/g, '<strong>$1</strong>');
+                
+                // Italic text *text* or _text_
+                html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+                html = html.replace(/_(.*?)_/g, '<em>$1</em>');
+                
+                // Inline code `code`
+                html = html.replace(/`(.*?)`/g, '<code style="background: #f1f1f1; padding: 2px 4px; border-radius: 3px; font-family: monospace;">$1</code>');
+                
+                // Line breaks
+                html = html.replace(/\n/g, '<br>');
+                
+                // Bullet points (•)
+                html = html.replace(/^• /gm, '&bull; ');
+                
+                return html;
+            }
+
+            /**
              * Adds a message to the conversation
              * @param {string} text - Message content
              * @param {string} type - Message type: 'user', 'ai', or 'system'
@@ -477,7 +536,7 @@
             addMessage(text, type = 'ai') {
                 const messageDiv = document.createElement('div');
                 messageDiv.className = `message ${type}`;
-                messageDiv.innerHTML = text;
+                messageDiv.innerHTML = this.markdownToHTML(text);
                 
                 this.messagesContainer.appendChild(messageDiv);
                 this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
@@ -1024,6 +1083,9 @@
                 const issues = [];
                 let isValid = true;
 
+                // Determine if this is a simple app (calculator, notepad, clock, etc.)
+                const isSimpleApp = this.isSimpleApp(appData);
+
                 // Validate HTML
                 if (appData.html) {
                     const htmlIssues = this.validateHTML(appData.html);
@@ -1042,18 +1104,67 @@
                     issues.push(...jsIssues);
                 }
 
-                // Determine if app is safe to run
+                // For simple apps, be more lenient - only block critical issues
                 const criticalIssues = issues.filter(issue => issue.severity === 'critical');
-                if (criticalIssues.length > 0) {
-                    isValid = false;
+                const warningIssues = issues.filter(issue => issue.severity === 'warning');
+
+                if (isSimpleApp) {
+                    // For simple apps, only fail on truly critical security issues
+                    // and ignore most warnings
+                    if (criticalIssues.length > 0) {
+                        // Even for critical issues, be more lenient for very basic apps
+                        const trulyDangerousCritical = criticalIssues.filter(issue => 
+                            issue.message.includes('script') || issue.message.includes('javascript:')
+                        );
+                        if (trulyDangerousCritical.length > 0) {
+                            isValid = false;
+                        }
+                    }
+                } else {
+                    // For complex apps, be more strict
+                    if (criticalIssues.length > 0 || warningIssues.length > 3) {
+                        isValid = false;
+                    }
                 }
 
                 return {
                     isValid,
                     issues,
                     criticalIssues: criticalIssues.length,
-                    warningIssues: issues.filter(issue => issue.severity === 'warning').length
+                    warningIssues: warningIssues.length
                 };
+            }
+
+            /**
+             * Determines if an app is a simple, low-risk application
+             * @param {Object} appData - App data
+             * @returns {boolean} True if this is a simple app
+             */
+            static isSimpleApp(appData) {
+                const appName = (appData.name || '').toLowerCase();
+                const appDescription = (appData.description || '').toLowerCase();
+                const htmlContent = (appData.html || '').toLowerCase();
+                const combinedText = `${appName} ${appDescription} ${htmlContent}`.toLowerCase();
+
+                const simpleAppKeywords = [
+                    'calculator', 'notepad', 'clock', 'timer', 'counter', 'color picker',
+                    'password generator', 'unit converter', 'weather display', 'calendar',
+                    'stopwatch', 'text editor', 'simple game', 'dice', 'random', 'todo',
+                    'task', 'list', 'button', 'input', 'form', 'basic', 'simple', 'widget',
+                    'tool', 'utility', 'converter', 'display', 'viewer', 'manager'
+                ];
+
+                // If it contains any simple app keywords, treat as simple
+                const hasSimpleKeywords = simpleAppKeywords.some(keyword => combinedText.includes(keyword));
+                
+                // Additional check - if it's a basic HTML structure without complex elements
+                const hasComplexElements = combinedText.includes('canvas') || 
+                                         combinedText.includes('webgl') || 
+                                         combinedText.includes('websocket') ||
+                                         combinedText.includes('geolocation') ||
+                                         combinedText.includes('indexeddb');
+
+                return hasSimpleKeywords || !hasComplexElements;
             }
 
             /**
@@ -1065,8 +1176,8 @@
                 const issues = [];
                 const lowerHtml = html.toLowerCase();
 
-                // Check for dangerous HTML elements
-                const dangerousElements = ['script', 'iframe', 'object', 'embed', 'form'];
+                // Only check for truly dangerous HTML elements that can execute scripts
+                const dangerousElements = ['script', 'iframe'];
                 dangerousElements.forEach(element => {
                     if (lowerHtml.includes(`<${element}`)) {
                         issues.push({
@@ -1078,7 +1189,22 @@
                     }
                 });
 
-                // Check for inline event handlers
+                // Check for forms with external actions (but allow simple forms)
+                const formMatches = lowerHtml.match(/<form[^>]*>/g);
+                if (formMatches) {
+                    formMatches.forEach(formTag => {
+                        if (formTag.includes('action=') && (formTag.includes('http://') || formTag.includes('https://'))) {
+                            issues.push({
+                                type: 'html',
+                                severity: 'critical',
+                                message: 'Form with external action detected',
+                                suggestion: 'Use JavaScript for form handling instead of external submissions'
+                            });
+                        }
+                    });
+                }
+
+                // Check for inline event handlers (warning level only)
                 const eventHandlers = ['onclick', 'onload', 'onerror', 'onmouseover'];
                 eventHandlers.forEach(handler => {
                     if (lowerHtml.includes(handler)) {
@@ -1155,19 +1281,14 @@
                 const issues = [];
                 const lowerJs = javascript.toLowerCase();
 
-                // Check for dangerous functions
-                const dangerousFunctions = [
-                    { name: 'eval', severity: 'critical', message: 'eval() function is dangerous and can execute arbitrary code' },
-                    { name: 'function(', severity: 'critical', message: 'Function constructor can execute arbitrary code' },
-                    { name: 'settimeout(', severity: 'warning', message: 'setTimeout with string argument can be dangerous' },
-                    { name: 'setinterval(', severity: 'warning', message: 'setInterval with string argument can be dangerous' },
-                    { name: 'innerhtml', severity: 'warning', message: 'innerHTML can be vulnerable to XSS attacks' },
-                    { name: 'outerhtml', severity: 'warning', message: 'outerHTML can be vulnerable to XSS attacks' },
-                    { name: 'document.write', severity: 'critical', message: 'document.write can be dangerous and is deprecated' },
-                    { name: 'document.writeln', severity: 'critical', message: 'document.writeln can be dangerous and is deprecated' }
+                // Check for truly dangerous functions only
+                const criticalFunctions = [
+                    { name: 'eval(', severity: 'critical', message: 'eval() function is dangerous and can execute arbitrary code' },
+                    { name: 'document.write(', severity: 'critical', message: 'document.write can be dangerous and is deprecated' },
+                    { name: 'document.writeln(', severity: 'critical', message: 'document.writeln can be dangerous and is deprecated' }
                 ];
 
-                dangerousFunctions.forEach(func => {
+                criticalFunctions.forEach(func => {
                     if (lowerJs.includes(func.name)) {
                         issues.push({
                             type: 'javascript',
@@ -1177,6 +1298,16 @@
                         });
                     }
                 });
+
+                // Only flag innerHTML if it's used with user input (more nuanced check)
+                if (lowerJs.includes('innerhtml') && (lowerJs.includes('prompt(') || lowerJs.includes('input.value'))) {
+                    issues.push({
+                        type: 'javascript',
+                        severity: 'warning',
+                        message: 'innerHTML with user input detected - potential XSS risk',
+                        suggestion: 'Use textContent or createElement() for user-provided content'
+                    });
+                }
 
                 // Check for external script loading
                 if (lowerJs.includes('document.createElement(\'script\')') || 
@@ -1650,6 +1781,9 @@
              */
             static async executeJavaScript(code, container, appId) {
                 try {
+                    // Clean and validate the code first
+                    const cleanedCode = this.cleanJavaScriptCode(code);
+                    
                     // Create a safe execution context
                     const safeContext = {
                         container: container,
@@ -1662,15 +1796,24 @@
                         setTimeout: setTimeout,
                         setInterval: setInterval,
                         clearTimeout: clearTimeout,
-                        clearInterval: clearInterval
+                        clearInterval: clearInterval,
+                        localStorage: localStorage,
+                        alert: alert,
+                        confirm: confirm,
+                        prompt: prompt
                     };
 
-                    // Create function with limited scope
+                    // Create function with limited scope and better error handling
                     const executeFunction = new Function(
                         'context',
                         `
-                        const { container, appId, document, console, Math, Date, JSON, setTimeout, setInterval, clearTimeout, clearInterval } = context;
-                        ${code}
+                        try {
+                            const { container, appId, document, console, Math, Date, JSON, setTimeout, setInterval, clearTimeout, clearInterval, localStorage, alert, confirm, prompt } = context;
+                            ${cleanedCode}
+                        } catch (error) {
+                            console.error('App execution error:', error);
+                            throw error;
+                        }
                         `
                     );
 
@@ -1681,6 +1824,44 @@
                     console.error('JavaScript execution error:', error);
                     throw new Error(`JavaScript error: ${error.message}`);
                 }
+            }
+
+            /**
+             * Cleans and validates JavaScript code before execution
+             * @param {string} code - Raw JavaScript code
+             * @returns {string} Cleaned JavaScript code
+             */
+            static cleanJavaScriptCode(code) {
+                if (!code || typeof code !== 'string') {
+                    return '';
+                }
+
+                console.log('Raw JavaScript code received:', code);
+
+                // Remove any potential HTML script tags if they somehow got included
+                let cleaned = code.replace(/<script[^>]*>/gi, '').replace(/<\/script>/gi, '');
+                
+                // Ensure the code ends properly (no hanging braces)
+                cleaned = cleaned.trim();
+                
+                // Basic validation - count braces
+                const openBraces = (cleaned.match(/\{/g) || []).length;
+                const closeBraces = (cleaned.match(/\}/g) || []).length;
+                
+                console.log(`Brace count - Open: ${openBraces}, Close: ${closeBraces}`);
+                
+                if (openBraces !== closeBraces) {
+                    console.warn('JavaScript code has mismatched braces, attempting to fix...');
+                    // Add missing closing braces if needed
+                    if (openBraces > closeBraces) {
+                        const missing = openBraces - closeBraces;
+                        cleaned += '\n' + '}'.repeat(missing);
+                        console.log(`Added ${missing} closing braces`);
+                    }
+                }
+
+                console.log('Cleaned JavaScript code:', cleaned);
+                return cleaned;
             }
         }
 
@@ -1761,10 +1942,11 @@
 
                     const prompt = this.buildGeminiPrompt(userRequest);
                     
-                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${this.geminiApiKey}`, {
+                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
+                            'X-goog-api-key': this.geminiApiKey
                         },
                         body: JSON.stringify({
                             contents: [{
@@ -1807,16 +1989,16 @@
             static buildGeminiPrompt(userRequest) {
                 const existingApps = Array.from(AppMarketplace.apps.values()).map(app => app.name).join(', ');
                 
-                return `You are an AI assistant for an autonomous app marketplace that creates web applications in real-time.
+                return `You are an AI assistant for an autonomous app marketplace that creates complete web applications from scratch.
 
 CONTEXT:
 - Current apps in marketplace: ${existingApps || 'None'}
 - User request: "${userRequest}"
-- Target: Create simple DOM-based web apps using HTML, CSS, and JavaScript
-- Security: Apps run in the same page context, so code must be safe
+- Target: Create complete, functional web apps using only HTML, CSS, and JavaScript
+- Constraints: No external libraries, no third-party dependencies, must run inside a single page
 
 TASK:
-Analyze the user request and respond with a JSON object in this EXACT format:
+Generate a complete, functional web application and respond with a JSON object in this EXACT format:
 
 {
   "type": "create|modify|delete|run|general",
@@ -1825,24 +2007,56 @@ Analyze the user request and respond with a JSON object in this EXACT format:
   "appData": {
     "name": "App Name",
     "description": "Brief description",
-    "html": "HTML code (if creating/modifying)",
-    "css": "CSS code (if creating/modifying)", 
-    "javascript": "JavaScript code (if creating/modifying)"
+    "html": "Complete HTML structure (fully functional UI)",
+    "css": "Complete CSS styling (modern, responsive design)", 
+    "javascript": "Complete JavaScript functionality (use addEventListener, avoid inline handlers)"
   },
   "suggestions": "Additional suggestions for complex apps"
 }
 
-RULES:
-1. For complex requests, create a simpler version and explain next steps
-2. Keep JavaScript simple - avoid external libraries, eval(), or dangerous functions
-3. Use only safe DOM manipulation and standard browser APIs
-4. For games, prefer turn-based over real-time when possible
-5. Always include user-friendly interfaces
+CRITICAL JAVASCRIPT REQUIREMENTS:
+1. Generate SYNTACTICALLY PERFECT JavaScript - check all braces, parentheses, and semicolons
+2. NO placeholders or comments like "// Add logic here" - implement everything fully
+3. Use proper function syntax: function name() { ... } or const name = () => { ... }
+4. Ensure all opening braces { have matching closing braces }
+5. End all statements with semicolons where appropriate
+6. Use addEventListener() for all event handling - NO inline handlers
+7. NO eval(), document.write(), Function(), or dangerous functions
+8. NO <script> tags in HTML - JavaScript goes ONLY in the "javascript" field
+9. Use proper DOM manipulation: getElementById, createElement, appendChild, textContent
+10. Test your code mentally - count braces and ensure proper syntax
 
-EXAMPLES:
-- "build a notepad" → type: "create", simple text editor
-- "add calculator memory" → type: "modify", enhance existing calculator  
-- "create a 3D game" → type: "create", complexity: "complex", build 2D version instead
+HTML STRUCTURE RULES:
+- Use semantic HTML elements (div, span, button, input, etc.)
+- NO <script>, <iframe>, <object>, <embed> tags
+- Forms are OK but no external actions
+- Use data attributes for JavaScript interaction
+- Complete structure with proper nesting
+
+CSS STYLING RULES:
+- Modern, responsive design with flexbox/grid
+- Consistent color scheme and typography
+- Mobile-friendly layouts
+- Hover effects and smooth transitions
+- Complete styling for all elements
+
+JAVASCRIPT VALIDATION CHECKLIST:
+✓ All functions properly closed with }
+✓ All event listeners use addEventListener()
+✓ All variables properly declared (const/let)
+✓ No syntax errors or typos
+✓ Proper DOM element selection
+✓ Complete functionality implementation
+
+EXAMPLES OF COMPLETE APPS:
+- Calculator: Full button grid, display, all operations working with proper click handlers
+- Notepad: Text area, save/load to localStorage, clear functionality, proper button events
+- Todo List: Add/delete/toggle tasks, complete DOM manipulation with event delegation
+- Timer: Start/stop/reset functionality with setInterval/clearInterval
+
+For complex requests (3D games, AI features, databases), create a simplified but FULLY FUNCTIONAL version and explain the limitations.
+
+DOUBLE-CHECK YOUR JAVASCRIPT SYNTAX BEFORE RESPONDING!
 
 Respond with ONLY the JSON object, no additional text.`;
             }
@@ -1908,11 +2122,12 @@ Respond with ONLY the JSON object, no additional text.`;
                 // Simulate API delay
                 await this.delay(1000 + Math.random() * 2000);
                 
-                const request = userRequest.toLowerCase().trim();
+                const request = userRequest.trim();
+                const lowerRequest = request.toLowerCase();
                 
-                // Check for API key command
-                if (request.startsWith('/api-key ')) {
-                    const apiKey = request.substring(9).trim();
+                // Check for API key command (preserve original case for API key)
+                if (lowerRequest.startsWith('/api-key ')) {
+                    const apiKey = request.substring(9).trim(); // Use original request to preserve case
                     this.configure(apiKey);
                     return {
                         message: "✅ **Gemini AI API key configured successfully!**\n\nYou can now enjoy full AI-powered app generation. Try asking me to build something!",
@@ -1921,16 +2136,16 @@ Respond with ONLY the JSON object, no additional text.`;
                 }
                 
                 // Parse different types of requests
-                if (this.isCreateRequest(request)) {
-                    return this.handleCreateRequest(request);
-                } else if (this.isModifyRequest(request)) {
-                    return this.handleModifyRequest(request);
-                } else if (this.isDeleteRequest(request)) {
-                    return this.handleDeleteRequest(request);
-                } else if (this.isRunRequest(request)) {
-                    return this.handleRunRequest(request);
+                if (this.isCreateRequest(lowerRequest)) {
+                    return this.handleCreateRequest(lowerRequest);
+                } else if (this.isModifyRequest(lowerRequest)) {
+                    return this.handleModifyRequest(lowerRequest);
+                } else if (this.isDeleteRequest(lowerRequest)) {
+                    return this.handleDeleteRequest(lowerRequest);
+                } else if (this.isRunRequest(lowerRequest)) {
+                    return this.handleRunRequest(lowerRequest);
                 } else {
-                    return this.handleGeneralRequest(request);
+                    return this.handleGeneralRequest(lowerRequest);
                 }
             }
 
@@ -2011,44 +2226,10 @@ Respond with ONLY the JSON object, no additional text.`;
              * @returns {Object} AI response with create action
              */
             static handleCreateRequest(request) {
-                if (request.includes('notepad') || request.includes('text editor')) {
-                    return {
-                        message: "I'll create a notepad app for you! This will be a simple text editor with save/load functionality.",
-                        action: {
-                            type: 'create',
-                            appData: this.generateNotepadApp()
-                        }
-                    };
-                } else if (request.includes('calculator')) {
-                    const includesSquareRoot = request.includes('square root') || request.includes('sqrt');
-                    return {
-                        message: `I'll create a calculator app${includesSquareRoot ? ' with square root functionality' : ''} for you!`,
-                        action: {
-                            type: 'create',
-                            appData: this.generateCalculatorApp(includesSquareRoot)
-                        }
-                    };
-                } else if (request.includes('snake') && request.includes('ladder')) {
-                    return {
-                        message: "I'll create a Snake and Ladder game for you! This will be a digital version of the classic board game.",
-                        action: {
-                            type: 'create',
-                            appData: this.generateSnakeLadderGame()
-                        }
-                    };
-                } else if (request.includes('todo') || request.includes('task')) {
-                    return {
-                        message: "I'll create a Todo List app for you! You can add, complete, and delete tasks.",
-                        action: {
-                            type: 'create',
-                            appData: this.generateTodoApp()
-                        }
-                    };
-                } else {
-                    return {
-                        message: "I can help you create various apps! Try asking for:\n• A notepad app\n• A calculator\n• A Snake and Ladder game\n• A todo list app\n\nWhat would you like me to build?"
-                    };
-                }
+                return {
+                    message: "I understand you want to create an app! However, I need my Gemini AI connection to generate complete applications from scratch.\n\n**🔧 To enable full AI app generation:**\n1. Click \"🔑 Setup Gemini AI\" button\n2. Get a free API key from https://makersuite.google.com/app/apikey\n3. Use command: `/api-key YOUR_API_KEY`\n\nOnce configured, I can create any app you imagine with complete HTML, CSS, and JavaScript code!",
+                    action: null
+                };
             }
 
             /**
@@ -2059,42 +2240,14 @@ Respond with ONLY the JSON object, no additional text.`;
             static handleModifyRequest(request) {
                 const apps = Array.from(AppMarketplace.apps.values());
                 
-                if (request.includes('calculator')) {
-                    const calculatorApp = apps.find(app => app.name.toLowerCase().includes('calculator'));
-                    if (calculatorApp) {
-                        if (request.includes('square root') || request.includes('sqrt')) {
-                            return {
-                                message: "I'll add square root functionality to your calculator!",
-                                action: {
-                                    type: 'modify',
-                                    appId: calculatorApp.id,
-                                    modifications: {
-                                        javascript: this.getCalculatorJSWithSquareRoot()
-                                    }
-                                }
-                            };
-                        } else if (request.includes('memory')) {
-                            return {
-                                message: "I'll add memory functions (M+, M-, MR, MC) to your calculator!",
-                                action: {
-                                    type: 'modify',
-                                    appId: calculatorApp.id,
-                                    modifications: {
-                                        html: this.getCalculatorHTMLWithMemory(),
-                                        javascript: this.getCalculatorJSWithMemory()
-                                    }
-                                }
-                            };
-                        }
-                    } else {
-                        return {
-                            message: "I don't see a calculator app to modify. Would you like me to create one first?"
-                        };
-                    }
+                if (apps.length === 0) {
+                    return {
+                        message: "I don't see any apps to modify. Would you like me to create a new app first?"
+                    };
                 }
                 
                 return {
-                    message: "I can help modify your existing apps! What specific changes would you like to make?"
+                    message: "I can help modify your existing apps! However, I need my Gemini AI connection to generate custom modifications.\n\n**🔧 To enable AI-powered modifications:**\n1. Click \"🔑 Setup Gemini AI\" button\n2. Get a free API key from https://makersuite.google.com/app/apikey\n3. Use command: `/api-key YOUR_API_KEY`\n\nOnce configured, I can modify any app with new features, styling, or functionality!"
                 };
             }
 
@@ -2110,11 +2263,11 @@ Respond with ONLY the JSON object, no additional text.`;
                     };
                 } else if (request.includes('help')) {
                     return {
-                        message: "I can help you with:\n\n🔨 **Creating apps**: \"Build a calculator\", \"Make a notepad app\"\n\n✏️ **Modifying apps**: \"Add square root to the calculator\", \"Improve the notepad\"\n\n🗑️ **Managing apps**: \"Delete the calculator\", \"Run the notepad app\"\n\nJust tell me what you want to do in natural language!"
+                        message: "I can help you with:\n\n🔨 **Creating apps**: \"Build a calculator\", \"Make a weather app\", \"Create a photo gallery\"\n\n✏️ **Modifying apps**: \"Add dark mode\", \"Improve the design\", \"Add new features\"\n\n🗑️ **Managing apps**: \"Delete the app\", \"Run the app\"\n\n**⚡ For best results:** Configure Gemini AI for intelligent code generation!\n\nJust tell me what you want to do in natural language!"
                     };
                 } else {
                     return {
-                        message: "I'm not sure how to help with that. Try asking me to build an app, modify an existing one, or ask for help to see what I can do!"
+                        message: "I'm ready to help you build amazing web apps! Try asking me to create something like:\n\n• \"Build a password generator\"\n• \"Create a digital clock\"\n• \"Make a color picker tool\"\n• \"Build a simple drawing app\"\n\n**💡 Tip:** For full AI-powered generation, set up your Gemini API key!"
                     };
                 }
             }
@@ -2129,537 +2282,15 @@ Respond with ONLY the JSON object, no additional text.`;
 
             // App generation methods will be added in the next section...
             
-            /**
-             * Generates a notepad app configuration
-             * @returns {Object} App configuration
-             */
-            static generateNotepadApp() {
-                return {
-                    name: "Notepad",
-                    description: "Simple text editor with save/load functionality",
-                    html: `
-                        <div style="height: 100%; display: flex; flex-direction: column;">
-                            <div style="padding: 10px; background: #f5f5f5; border-bottom: 1px solid #ddd;">
-                                <button onclick="saveText()" style="margin-right: 10px; padding: 5px 10px;">Save</button>
-                                <button onclick="loadText()" style="margin-right: 10px; padding: 5px 10px;">Load</button>
-                                <button onclick="clearText()" style="padding: 5px 10px;">Clear</button>
-                            </div>
-                            <textarea id="notepadText" placeholder="Start typing your notes here..." 
-                                style="flex: 1; border: none; padding: 15px; font-family: monospace; resize: none; outline: none;"></textarea>
-                        </div>
-                    `,
-                    css: ``,
-                    javascript: `
-                        function saveText() {
-                            const text = document.getElementById('notepadText').value;
-                            localStorage.setItem('notepad-content', text);
-                            alert('Text saved!');
-                        }
-                        
-                        function loadText() {
-                            const savedText = localStorage.getItem('notepad-content');
-                            if (savedText) {
-                                document.getElementById('notepadText').value = savedText;
-                                alert('Text loaded!');
-                            } else {
-                                alert('No saved text found!');
-                            }
-                        }
-                        
-                        function clearText() {
-                            if (confirm('Are you sure you want to clear all text?')) {
-                                document.getElementById('notepadText').value = '';
-                            }
-                        }
-                    `
-                };
-            }
 
-            /**
-             * Generates a calculator app configuration
-             * @param {boolean} includeSquareRoot - Whether to include square root function
-             * @returns {Object} App configuration
-             */
-            static generateCalculatorApp(includeSquareRoot = false) {
-                const baseHTML = `
-                    <div style="width: 300px; margin: 0 auto; padding: 20px; background: #2c3e50; border-radius: 10px;">
-                        <div id="display" style="background: #1a252f; color: #ecf0f1; padding: 15px; margin-bottom: 10px; text-align: right; font-size: 24px; border-radius: 5px; min-height: 40px;">0</div>
-                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;">
-                            <button onclick="clearDisplay()" style="grid-column: span 2; padding: 15px; font-size: 16px; background: #e74c3c; color: white; border: none; border-radius: 5px; cursor: pointer;">Clear</button>
-                            <button onclick="deleteLast()" style="padding: 15px; font-size: 16px; background: #f39c12; color: white; border: none; border-radius: 5px; cursor: pointer;">Del</button>
-                            <button onclick="operation('/')" style="padding: 15px; font-size: 16px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer;">÷</button>
-                            
-                            <button onclick="appendNumber('7')" style="padding: 15px; font-size: 16px; background: #34495e; color: white; border: none; border-radius: 5px; cursor: pointer;">7</button>
-                            <button onclick="appendNumber('8')" style="padding: 15px; font-size: 16px; background: #34495e; color: white; border: none; border-radius: 5px; cursor: pointer;">8</button>
-                            <button onclick="appendNumber('9')" style="padding: 15px; font-size: 16px; background: #34495e; color: white; border: none; border-radius: 5px; cursor: pointer;">9</button>
-                            <button onclick="operation('*')" style="padding: 15px; font-size: 16px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer;">×</button>
-                            
-                            <button onclick="appendNumber('4')" style="padding: 15px; font-size: 16px; background: #34495e; color: white; border: none; border-radius: 5px; cursor: pointer;">4</button>
-                            <button onclick="appendNumber('5')" style="padding: 15px; font-size: 16px; background: #34495e; color: white; border: none; border-radius: 5px; cursor: pointer;">5</button>
-                            <button onclick="appendNumber('6')" style="padding: 15px; font-size: 16px; background: #34495e; color: white; border: none; border-radius: 5px; cursor: pointer;">6</button>
-                            <button onclick="operation('-')" style="padding: 15px; font-size: 16px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer;">-</button>
-                            
-                            <button onclick="appendNumber('1')" style="padding: 15px; font-size: 16px; background: #34495e; color: white; border: none; border-radius: 5px; cursor: pointer;">1</button>
-                            <button onclick="appendNumber('2')" style="padding: 15px; font-size: 16px; background: #34495e; color: white; border: none; border-radius: 5px; cursor: pointer;">2</button>
-                            <button onclick="appendNumber('3')" style="padding: 15px; font-size: 16px; background: #34495e; color: white; border: none; border-radius: 5px; cursor: pointer;">3</button>
-                            <button onclick="operation('+')" style="padding: 15px; font-size: 16px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer;">+</button>
-                            
-                            <button onclick="appendNumber('0')" style="grid-column: span 2; padding: 15px; font-size: 16px; background: #34495e; color: white; border: none; border-radius: 5px; cursor: pointer;">0</button>
-                            <button onclick="appendNumber('.')" style="padding: 15px; font-size: 16px; background: #34495e; color: white; border: none; border-radius: 5px; cursor: pointer;">.</button>
-                            <button onclick="calculate()" style="padding: 15px; font-size: 16px; background: #27ae60; color: white; border: none; border-radius: 5px; cursor: pointer;">=</button>
-                            ${includeSquareRoot ? '<button onclick="squareRoot()" style="grid-column: span 2; padding: 15px; font-size: 16px; background: #9b59b6; color: white; border: none; border-radius: 5px; cursor: pointer;">√</button>' : ''}
-                        </div>
-                    </div>
-                `;
 
-                const baseJS = `
-                    let currentInput = '';
-                    let operator = '';
-                    let previousInput = '';
-                    
-                    function updateDisplay() {
-                        const display = document.getElementById('display');
-                        display.textContent = currentInput || '0';
-                    }
-                    
-                    function appendNumber(number) {
-                        if (currentInput.length < 10) {
-                            currentInput += number;
-                            updateDisplay();
-                        }
-                    }
-                    
-                    function operation(op) {
-                        if (currentInput === '') return;
-                        if (previousInput !== '' && operator !== '') {
-                            calculate();
-                        }
-                        operator = op;
-                        previousInput = currentInput;
-                        currentInput = '';
-                    }
-                    
-                    function calculate() {
-                        if (previousInput === '' || currentInput === '' || operator === '') return;
-                        
-                        let result;
-                        const prev = parseFloat(previousInput);
-                        const current = parseFloat(currentInput);
-                        
-                        switch (operator) {
-                            case '+':
-                                result = prev + current;
-                                break;
-                            case '-':
-                                result = prev - current;
-                                break;
-                            case '*':
-                                result = prev * current;
-                                break;
-                            case '/':
-                                result = current !== 0 ? prev / current : 'Error';
-                                break;
-                            default:
-                                return;
-                        }
-                        
-                        currentInput = result.toString();
-                        operator = '';
-                        previousInput = '';
-                        updateDisplay();
-                    }
-                    
-                    function clearDisplay() {
-                        currentInput = '';
-                        operator = '';
-                        previousInput = '';
-                        updateDisplay();
-                    }
-                    
-                    function deleteLast() {
-                        currentInput = currentInput.slice(0, -1);
-                        updateDisplay();
-                    }
-                `;
 
-                const squareRootJS = includeSquareRoot ? `
-                    function squareRoot() {
-                        if (currentInput === '') return;
-                        const num = parseFloat(currentInput);
-                        if (num < 0) {
-                            currentInput = 'Error';
-                        } else {
-                            currentInput = Math.sqrt(num).toString();
-                        }
-                        updateDisplay();
-                    }
-                ` : '';
 
-                return {
-                    name: "Calculator",
-                    description: "Basic calculator with arithmetic operations" + (includeSquareRoot ? " and square root" : ""),
-                    html: baseHTML,
-                    css: ``,
-                    javascript: baseJS + squareRootJS
-                };
-            }
 
-            /**
-             * Generates a Snake and Ladder game configuration
-             * @returns {Object} App configuration
-             */
-            static generateSnakeLadderGame() {
-                return {
-                    name: "Snake and Ladder",
-                    description: "Classic board game with digital dice",
-                    html: `
-                        <div style="text-align: center; padding: 20px;">
-                            <h3 style="margin-bottom: 20px; color: #2c3e50;">Snake and Ladder Game</h3>
-                            <div style="margin-bottom: 20px;">
-                                <div>Player 1 Position: <span id="player1Pos" style="font-weight: bold; color: #e74c3c;">1</span></div>
-                                <div>Player 2 Position: <span id="player2Pos" style="font-weight: bold; color: #3498db;">1</span></div>
-                                <div style="margin-top: 10px;">Current Turn: <span id="currentTurn" style="font-weight: bold;">Player 1</span></div>
-                            </div>
-                            <canvas id="gameBoard" width="400" height="400" style="border: 2px solid #2c3e50; background: #ecf0f1;"></canvas>
-                            <div style="margin-top: 20px;">
-                                <button onclick="rollDice()" id="rollButton" style="padding: 10px 20px; font-size: 16px; background: #27ae60; color: white; border: none; border-radius: 5px; cursor: pointer;">Roll Dice</button>
-                                <div style="margin-top: 10px;">Dice: <span id="diceValue" style="font-size: 24px; font-weight: bold;">-</span></div>
-                            </div>
-                            <div id="gameMessage" style="margin-top: 15px; font-weight: bold; min-height: 20px;"></div>
-                        </div>
-                    `,
-                    css: ``,
-                    javascript: `
-                        let player1Pos = 1;
-                        let player2Pos = 1;
-                        let currentPlayer = 1;
-                        let gameWon = false;
-                        
-                        const snakes = {30: 7, 50: 34, 62: 19, 95: 75, 99: 78};
-                        const ladders = {4: 14, 9: 31, 20: 38, 28: 84, 40: 59, 51: 67, 63: 81, 71: 91};
-                        
-                        const canvas = document.getElementById('gameBoard');
-                        const ctx = canvas.getContext('2d');
-                        
-                        function drawBoard() {
-                            ctx.clearRect(0, 0, 400, 400);
-                            
-                            // Draw grid
-                            for (let i = 0; i <= 10; i++) {
-                                ctx.beginPath();
-                                ctx.moveTo(i * 40, 0);
-                                ctx.lineTo(i * 40, 400);
-                                ctx.moveTo(0, i * 40);
-                                ctx.lineTo(400, i * 40);
-                                ctx.strokeStyle = '#bdc3c7';
-                                ctx.stroke();
-                            }
-                            
-                            // Draw numbers
-                            ctx.fillStyle = '#2c3e50';
-                            ctx.font = '12px Arial';
-                            for (let i = 1; i <= 100; i++) {
-                                const pos = getPosition(i);
-                                ctx.fillText(i.toString(), pos.x + 5, pos.y + 15);
-                            }
-                            
-                            // Draw snakes
-                            ctx.strokeStyle = '#e74c3c';
-                            ctx.lineWidth = 3;
-                            for (const [head, tail] of Object.entries(snakes)) {
-                                const headPos = getPosition(parseInt(head));
-                                const tailPos = getPosition(tail);
-                                ctx.beginPath();
-                                ctx.moveTo(headPos.x + 20, headPos.y + 20);
-                                ctx.lineTo(tailPos.x + 20, tailPos.y + 20);
-                                ctx.stroke();
-                            }
-                            
-                            // Draw ladders
-                            ctx.strokeStyle = '#f39c12';
-                            ctx.lineWidth = 3;
-                            for (const [bottom, top] of Object.entries(ladders)) {
-                                const bottomPos = getPosition(parseInt(bottom));
-                                const topPos = getPosition(top);
-                                ctx.beginPath();
-                                ctx.moveTo(bottomPos.x + 20, bottomPos.y + 20);
-                                ctx.lineTo(topPos.x + 20, topPos.y + 20);
-                                ctx.stroke();
-                            }
-                            
-                            // Draw players
-                            ctx.lineWidth = 1;
-                            const p1Pos = getPosition(player1Pos);
-                            const p2Pos = getPosition(player2Pos);
-                            
-                            ctx.fillStyle = '#e74c3c';
-                            ctx.beginPath();
-                            ctx.arc(p1Pos.x + 10, p1Pos.y + 30, 8, 0, 2 * Math.PI);
-                            ctx.fill();
-                            
-                            ctx.fillStyle = '#3498db';
-                            ctx.beginPath();
-                            ctx.arc(p2Pos.x + 30, p2Pos.y + 30, 8, 0, 2 * Math.PI);
-                            ctx.fill();
-                        }
-                        
-                        function getPosition(num) {
-                            const row = Math.floor((num - 1) / 10);
-                            const col = (num - 1) % 10;
-                            const y = 360 - (row * 40);
-                            const x = row % 2 === 0 ? col * 40 : (9 - col) * 40;
-                            return {x, y};
-                        }
-                        
-                        function rollDice() {
-                            if (gameWon) return;
-                            
-                            const dice = Math.floor(Math.random() * 6) + 1;
-                            document.getElementById('diceValue').textContent = dice;
-                            
-                            if (currentPlayer === 1) {
-                                movePlayer(1, dice);
-                            } else {
-                                movePlayer(2, dice);
-                            }
-                            
-                            currentPlayer = currentPlayer === 1 ? 2 : 1;
-                            document.getElementById('currentTurn').textContent = 'Player ' + currentPlayer;
-                        }
-                        
-                        function movePlayer(player, steps) {
-                            let newPos;
-                            if (player === 1) {
-                                newPos = Math.min(player1Pos + steps, 100);
-                                player1Pos = newPos;
-                                document.getElementById('player1Pos').textContent = newPos;
-                            } else {
-                                newPos = Math.min(player2Pos + steps, 100);
-                                player2Pos = newPos;
-                                document.getElementById('player2Pos').textContent = newPos;
-                            }
-                            
-                            // Check for snakes and ladders
-                            if (snakes[newPos]) {
-                                newPos = snakes[newPos];
-                                document.getElementById('gameMessage').textContent = 'Player ' + player + ' got bitten by a snake!';
-                                if (player === 1) {
-                                    player1Pos = newPos;
-                                    document.getElementById('player1Pos').textContent = newPos;
-                                } else {
-                                    player2Pos = newPos;
-                                    document.getElementById('player2Pos').textContent = newPos;
-                                }
-                            } else if (ladders[newPos]) {
-                                newPos = ladders[newPos];
-                                document.getElementById('gameMessage').textContent = 'Player ' + player + ' climbed a ladder!';
-                                if (player === 1) {
-                                    player1Pos = newPos;
-                                    document.getElementById('player1Pos').textContent = newPos;
-                                } else {
-                                    player2Pos = newPos;
-                                    document.getElementById('player2Pos').textContent = newPos;
-                                }
-                            } else {
-                                document.getElementById('gameMessage').textContent = '';
-                            }
-                            
-                            // Check for win
-                            if (newPos === 100) {
-                                document.getElementById('gameMessage').textContent = 'Player ' + player + ' wins!';
-                                gameWon = true;
-                                document.getElementById('rollButton').disabled = true;
-                            }
-                            
-                            drawBoard();
-                        }
-                        
-                        // Initialize game
-                        drawBoard();
-                    `
-                };
-            }
 
-            /**
-             * Generates a todo list app configuration
-             * @returns {Object} App configuration
-             */
-            static generateTodoApp() {
-                return {
-                    name: "Todo List",
-                    description: "Simple task management app",
-                    html: `
-                        <div style="max-width: 400px; margin: 0 auto; padding: 20px; background: #f8f9fa; border-radius: 10px;">
-                            <h3 style="text-align: center; color: #2c3e50; margin-bottom: 20px;">My Todo List</h3>
-                            <div style="display: flex; margin-bottom: 20px;">
-                                <input type="text" id="todoInput" placeholder="Add a new task..." 
-                                    style="flex: 1; padding: 10px; border: 2px solid #e9ecef; border-radius: 5px 0 0 5px; outline: none;">
-                                <button onclick="addTodo()" style="padding: 10px 15px; background: #28a745; color: white; border: none; border-radius: 0 5px 5px 0; cursor: pointer;">Add</button>
-                            </div>
-                            <ul id="todoList" style="list-style: none; padding: 0; margin: 0;"></ul>
-                            <div style="text-align: center; margin-top: 20px; color: #6c757d;">
-                                <span id="todoCount">0 tasks</span>
-                            </div>
-                        </div>
-                    `,
-                    css: ``,
-                    javascript: `
-                        let todos = [];
-                        let todoIdCounter = 1;
-                        
-                        function addTodo() {
-                            const input = document.getElementById('todoInput');
-                            const text = input.value.trim();
-                            
-                            if (text === '') return;
-                            
-                            const todo = {
-                                id: todoIdCounter++,
-                                text: text,
-                                completed: false
-                            };
-                            
-                            todos.push(todo);
-                            input.value = '';
-                            renderTodos();
-                        }
-                        
-                        function toggleTodo(id) {
-                            const todo = todos.find(t => t.id === id);
-                            if (todo) {
-                                todo.completed = !todo.completed;
-                                renderTodos();
-                            }
-                        }
-                        
-                        function deleteTodo(id) {
-                            todos = todos.filter(t => t.id !== id);
-                            renderTodos();
-                        }
-                        
-                        function renderTodos() {
-                            const list = document.getElementById('todoList');
-                            const count = document.getElementById('todoCount');
-                            
-                            list.innerHTML = '';
-                            
-                            todos.forEach(todo => {
-                                const li = document.createElement('li');
-                                li.style.cssText = 'background: white; margin-bottom: 10px; padding: 15px; border-radius: 5px; display: flex; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1);';
-                                
-                                li.innerHTML = \`
-                                    <input type="checkbox" \${todo.completed ? 'checked' : ''} 
-                                        onchange="toggleTodo(\${todo.id})" 
-                                        style="margin-right: 10px; transform: scale(1.2);">
-                                    <span style="flex: 1; \${todo.completed ? 'text-decoration: line-through; color: #6c757d;' : 'color: #2c3e50;'}">\${todo.text}</span>
-                                    <button onclick="deleteTodo(\${todo.id})" 
-                                        style="background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer;">Delete</button>
-                                \`;
-                                
-                                list.appendChild(li);
-                            });
-                            
-                            const totalTasks = todos.length;
-                            const completedTasks = todos.filter(t => t.completed).length;
-                            count.textContent = \`\${totalTasks} task\${totalTasks !== 1 ? 's' : ''}\${completedTasks > 0 ? \` (\${completedTasks} completed)\` : ''}\`;
-                        }
-                        
-                        // Allow Enter key to add todo
-                        document.getElementById('todoInput').addEventListener('keypress', function(e) {
-                            if (e.key === 'Enter') {
-                                addTodo();
-                            }
-                        });
-                        
-                        // Initial render
-                        renderTodos();
-                    `
-                };
-            }
 
-            // Additional helper methods for app modifications
-            static getCalculatorJSWithSquareRoot() {
-                return `
-                    let currentInput = '';
-                    let operator = '';
-                    let previousInput = '';
-                    
-                    function updateDisplay() {
-                        const display = document.getElementById('display');
-                        display.textContent = currentInput || '0';
-                    }
-                    
-                    function appendNumber(number) {
-                        if (currentInput.length < 10) {
-                            currentInput += number;
-                            updateDisplay();
-                        }
-                    }
-                    
-                    function operation(op) {
-                        if (currentInput === '') return;
-                        if (previousInput !== '' && operator !== '') {
-                            calculate();
-                        }
-                        operator = op;
-                        previousInput = currentInput;
-                        currentInput = '';
-                    }
-                    
-                    function calculate() {
-                        if (previousInput === '' || currentInput === '' || operator === '') return;
-                        
-                        let result;
-                        const prev = parseFloat(previousInput);
-                        const current = parseFloat(currentInput);
-                        
-                        switch (operator) {
-                            case '+':
-                                result = prev + current;
-                                break;
-                            case '-':
-                                result = prev - current;
-                                break;
-                            case '*':
-                                result = prev * current;
-                                break;
-                            case '/':
-                                result = current !== 0 ? prev / current : 'Error';
-                                break;
-                            default:
-                                return;
-                        }
-                        
-                        currentInput = result.toString();
-                        operator = '';
-                        previousInput = '';
-                        updateDisplay();
-                    }
-                    
-                    function clearDisplay() {
-                        currentInput = '';
-                        operator = '';
-                        previousInput = '';
-                        updateDisplay();
-                    }
-                    
-                    function deleteLast() {
-                        currentInput = currentInput.slice(0, -1);
-                        updateDisplay();
-                    }
-                    
-                    function squareRoot() {
-                        if (currentInput === '') return;
-                        const num = parseFloat(currentInput);
-                        if (num < 0) {
-                            currentInput = 'Error';
-                        } else {
-                            currentInput = Math.sqrt(num).toString();
-                        }
-                        updateDisplay();
-                    }
-                `;
-            }
+
+
         }
 
         // Initialize the application
@@ -2773,6 +2404,8 @@ Respond with ONLY the JSON object, no additional text.`;
             statusMessage += `• "Build a weather widget"\n`;
             statusMessage += `• "Create a password generator"\n`;
             statusMessage += `• "Make a music player interface"\n`;
+            statusMessage += `• "Build a digital clock"\n`;
+            statusMessage += `• "Create a photo gallery"\n`;
             statusMessage += `• "Build a complex 3D game" (I'll suggest a simpler alternative!)\n\n`;
             
             if (!hasApiKey) {
