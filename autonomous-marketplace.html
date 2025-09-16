@@ -326,6 +326,153 @@
             background: #e53e3e;
         }
 
+        /* Edit Modal Styles */
+        .edit-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .edit-modal-content {
+            background: white;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .edit-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 24px;
+            border-bottom: 1px solid #e2e8f0;
+            background: #f7fafc;
+            border-radius: 12px 12px 0 0;
+        }
+
+        .edit-header h3 {
+            margin: 0;
+            color: #2d3748;
+            font-size: 20px;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #718096;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .close-btn:hover {
+            background: #e2e8f0;
+            color: #2d3748;
+        }
+
+        .edit-body {
+            padding: 24px;
+        }
+
+        .current-app-info {
+            margin-bottom: 24px;
+        }
+
+        .current-app-info h4 {
+            margin: 0 0 12px 0;
+            color: #4a5568;
+            font-size: 16px;
+        }
+
+        .app-preview {
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            background: #f7fafc;
+        }
+
+        .edit-form h4 {
+            margin: 0 0 12px 0;
+            color: #4a5568;
+            font-size: 16px;
+        }
+
+        .edit-form textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            resize: vertical;
+            min-height: 120px;
+            transition: border-color 0.2s;
+        }
+
+        .edit-form textarea:focus {
+            outline: none;
+            border-color: #3182ce;
+            box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
+        }
+
+        .edit-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .btn-primary {
+            background: #3182ce;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .btn-primary:hover {
+            background: #2c5aa0;
+        }
+
+        .btn-primary:disabled {
+            background: #a0aec0;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #4a5568;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .btn-secondary:hover {
+            background: #cbd5e0;
+        }
+
         .app-content {
             padding: 16px;
             min-height: 200px;
@@ -389,11 +536,11 @@
         <!-- Header -->
         <div class="header">
             <h1>🤖 Autonomous App Marketplace</h1>
-            <p>Build, modify, and manage apps through natural conversation with AI</p>
+            <p>Build, modify, and manage droplets through natural conversation with AI</p>
             <div style="margin-top: 15px; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;">
-                <button onclick="AppManager.exportApps()" style="padding: 8px 16px; background: #6c757d; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.9em;">📤 Export Apps</button>
+                <button onclick="AppManager.exportApps()" style="padding: 8px 16px; background: #6c757d; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.9em;">📤 Export Droplets</button>
                 <input type="file" id="importFile" accept=".json" style="display: none;" onchange="handleImport(this)">
-                <button onclick="document.getElementById('importFile').click()" style="padding: 8px 16px; background: #6c757d; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.9em;">📥 Import Apps</button>
+                <button onclick="document.getElementById('importFile').click()" style="padding: 8px 16px; background: #6c757d; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.9em;">📥 Import Droplets</button>
                 <button onclick="clearAllData()" style="padding: 8px 16px; background: #dc3545; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.9em;">🗑️ Clear All</button>
                 <button onclick="showApiKeyPrompt()" style="padding: 8px 16px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.9em;">🔑 Setup Gemini AI</button>
             </div>
@@ -406,7 +553,7 @@
             </div>
             <div class="conversation-messages" id="conversationMessages">
                 <div class="message ai">
-                    👋 Welcome to the Autonomous App Marketplace! I can help you create, modify, and manage apps in real-time. 
+                    👋 Welcome to the Autonomous App Marketplace! I can help you create, modify, and manage droplets in real-time. 
                     Try saying something like:
                     <br><br>
                     • "Build a weather widget"
@@ -417,14 +564,14 @@
                     <br>
                     • "Build a color picker tool"
                     <br>
-                    • "Create a simple drawing app"
+                    • "Create a simple drawing droplet"
                 </div>
             </div>
             <div class="conversation-input">
                 <input 
                     type="text" 
                     id="userInput" 
-                    placeholder="Tell me what app you'd like to build or modify..."
+                    placeholder="Tell me what droplet you'd like to build or modify..."
                     autocomplete="off"
                 />
                 <button id="sendButton" onclick="sendMessage()">Send</button>
@@ -478,7 +625,40 @@
             apps: new Map(), // Stores all created apps
             runningApps: new Set(), // Tracks currently running apps
             conversationHistory: [], // Stores conversation messages
-            isProcessing: false // Prevents concurrent AI requests
+            isProcessing: false, // Prevents concurrent AI requests
+
+            /**
+             * Updates an existing app in the marketplace
+             * @param {string} appId - App identifier
+             * @param {Object} appData - Updated app data
+             */
+            updateApp(appId, appData) {
+                if (this.apps.has(appId)) {
+                    this.apps.set(appId, appData);
+                    this.saveToStorage();
+                    return true;
+                }
+                return false;
+            },
+
+            /**
+             * Saves current marketplace state to localStorage
+             */
+            saveToStorage() {
+                const appsArray = Array.from(this.apps.entries());
+                localStorage.setItem('autonomous-marketplace-apps', JSON.stringify(appsArray));
+            },
+
+            /**
+             * Loads marketplace state from localStorage
+             */
+            loadFromStorage() {
+                const saved = localStorage.getItem('autonomous-marketplace-apps');
+                if (saved) {
+                    const appsArray = JSON.parse(saved);
+                    this.apps = new Map(appsArray);
+                }
+            }
         };
 
         /**
@@ -1030,16 +1210,184 @@
             }
 
             /**
-             * Opens app editor (placeholder for future implementation)
+             * Opens AI-powered app editor interface
              * @param {string} appId - App identifier
              */
             static editApp(appId) {
                 const app = AppMarketplace.apps.get(appId);
                 if (!app) return;
                 
-                // For now, show app details in console
-                console.log('Edit app:', app);
-                conversationManager.addMessage(`Opening editor for "${app.name}" - this feature will show the app's source code for editing.`, 'system');
+                // Create edit interface
+                this.showEditInterface(app);
+            }
+
+            /**
+             * Shows the AI-powered edit interface for an app
+             * @param {Object} app - App object to edit
+             */
+            static showEditInterface(app) {
+                // Create modal overlay
+                const modal = document.createElement('div');
+                modal.className = 'edit-modal';
+                modal.innerHTML = `
+                    <div class="edit-modal-content">
+                        <div class="edit-header">
+                            <h3>🎨 Edit Droplet: ${app.name}</h3>
+                            <button class="close-btn" onclick="this.closest('.edit-modal').remove()">×</button>
+                        </div>
+                        <div class="edit-body">
+                            <div class="current-app-info">
+                                <h4>Current Droplet Preview:</h4>
+                                <div class="app-preview" id="editPreview-${app.id}"></div>
+                            </div>
+                            <div class="edit-form">
+                                <h4>What would you like to modify?</h4>
+                                <textarea id="editRequest-${app.id}" placeholder="Describe the changes you want to make. For example:
+• Add a dark mode toggle
+• Change the color scheme to blue
+• Add memory functions (M+, M-, MR, MC)
+• Make the buttons larger
+• Add sound effects
+• Include more operations like square root or percentage" rows="4"></textarea>
+                                <div class="edit-actions">
+                                    <button class="btn-primary" onclick="AppManager.processEditRequest('${app.id}')">
+                                        🤖 Generate Changes with AI
+                                    </button>
+                                    <button class="btn-secondary" onclick="this.closest('.edit-modal').remove()">
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // Add to page
+                document.body.appendChild(modal);
+
+                // Show current app in preview
+                this.renderAppPreview(app, `editPreview-${app.id}`);
+
+                // Focus on textarea
+                document.getElementById(`editRequest-${app.id}`).focus();
+            }
+
+            /**
+             * Renders app preview in edit interface
+             * @param {Object} app - App object
+             * @param {string} containerId - Container element ID
+             */
+            static renderAppPreview(app, containerId) {
+                const container = document.getElementById(containerId);
+                if (!container) return;
+
+                container.innerHTML = `
+                    <div style="border: 1px solid #ddd; border-radius: 8px; padding: 10px; background: #f9f9f9; max-height: 200px; overflow: auto;">
+                        <div style="font-size: 12px; color: #666; margin-bottom: 10px;">Preview (Current State):</div>
+                        <div style="transform: scale(0.7); transform-origin: top left; width: 142%; height: 142%;">
+                            ${app.html}
+                        </div>
+                    </div>
+                `;
+
+                // Apply CSS
+                const style = document.createElement('style');
+                style.textContent = app.css;
+                container.appendChild(style);
+
+                // Execute JavaScript in a safe way for preview
+                try {
+                    const previewContainer = container.querySelector('div > div:last-child');
+                    if (previewContainer && app.javascript) {
+                        // Create a simplified version for preview - remove event listeners to avoid conflicts
+                        const previewJS = app.javascript.replace(/addEventListener|onclick/g, '// $&');
+                        // Note: We don't execute the JS for preview to avoid conflicts, just show the visual structure
+                    }
+                } catch (error) {
+                    console.log('Preview rendering note:', error.message);
+                }
+            }
+
+            /**
+             * Processes AI edit request for an app
+             * @param {string} appId - App identifier
+             */
+            static async processEditRequest(appId) {
+                const app = AppMarketplace.apps.get(appId);
+                const requestTextarea = document.getElementById(`editRequest-${appId}`);
+                
+                if (!app || !requestTextarea) return;
+
+                const editRequest = requestTextarea.value.trim();
+                if (!editRequest) {
+                    alert('Please describe what changes you want to make.');
+                    return;
+                }
+
+                // Show loading state
+                const button = event.target;
+                const originalText = button.textContent;
+                button.textContent = '🤖 Generating changes...';
+                button.disabled = true;
+
+                try {
+                    // Create AI request for modification
+                    const modificationRequest = `Modify the existing "${app.name}" droplet with these changes: ${editRequest}
+
+Current droplet code:
+HTML: ${app.html}
+CSS: ${app.css}
+JavaScript: ${app.javascript}
+
+Please enhance or modify this droplet according to the user's request while maintaining all existing functionality.`;
+
+                    // Process with AI
+                    const aiResponse = await AIService.processRequest(modificationRequest);
+                    
+                    if (aiResponse.action && aiResponse.action.type === 'create') {
+                        // Update the existing app with new code
+                        const updatedApp = {
+                            ...app,
+                            html: aiResponse.action.appData.html || app.html,
+                            css: aiResponse.action.appData.css || app.css,
+                            javascript: aiResponse.action.appData.javascript || app.javascript,
+                            modified: Date.now(),
+                            description: aiResponse.action.appData.description || app.description
+                        };
+
+                        // Validate the updated app
+                        const validation = SecurityValidator.validateApp(updatedApp);
+                        
+                        if (validation.isValid) {
+                            // Update the app in marketplace
+                            AppMarketplace.updateApp(appId, updatedApp);
+                            
+                            // Close modal
+                            document.querySelector('.edit-modal').remove();
+                            
+                            // Show success message
+                            conversationManager.addMessage(`✅ **Droplet Updated Successfully!**\n\n${aiResponse.message}\n\nYour "${app.name}" droplet has been enhanced with the requested changes!`, 'ai');
+                            
+                            // Refresh the app list display
+                            this.displayApps();
+                            
+                        } else {
+                            throw new Error(`Security validation failed: ${validation.issues.join(', ')}`);
+                        }
+                    } else {
+                        // Show AI response even if no action
+                        conversationManager.addMessage(aiResponse.message, 'ai');
+                        document.querySelector('.edit-modal').remove();
+                    }
+                    
+                } catch (error) {
+                    console.error('Edit processing error:', error);
+                    conversationManager.addMessage(`❌ **Error updating droplet**: ${error.message}\n\nPlease try again with a different modification request.`, 'system');
+                } finally {
+                    // Restore button state
+                    button.textContent = originalText;
+                    button.disabled = false;
+                }
             }
 
             /**
@@ -1989,16 +2337,16 @@
             static buildGeminiPrompt(userRequest) {
                 const existingApps = Array.from(AppMarketplace.apps.values()).map(app => app.name).join(', ');
                 
-                return `You are an AI assistant for an autonomous app marketplace that creates complete web applications from scratch.
+                return `You are an AI assistant for an autonomous app marketplace that creates complete web droplets from scratch.
 
 CONTEXT:
-- Current apps in marketplace: ${existingApps || 'None'}
+- Current droplets in marketplace: ${existingApps || 'None'}
 - User request: "${userRequest}"
-- Target: Create complete, functional web apps using only HTML, CSS, and JavaScript
+- Target: Create complete, functional web droplets using only HTML, CSS, and JavaScript
 - Constraints: No external libraries, no third-party dependencies, must run inside a single page
 
 TASK:
-Generate a complete, functional web application and respond with a JSON object in this EXACT format:
+Generate a complete, functional web droplet and respond with a JSON object in this EXACT format:
 
 {
   "type": "create|modify|delete|run|general",
@@ -2048,7 +2396,7 @@ JAVASCRIPT VALIDATION CHECKLIST:
 ✓ Proper DOM element selection
 ✓ Complete functionality implementation
 
-EXAMPLES OF COMPLETE APPS:
+EXAMPLES OF COMPLETE DROPLETS:
 - Calculator: Full button grid, display, all operations working with proper click handlers
 - Notepad: Text area, save/load to localStorage, clear functionality, proper button events
 - Todo List: Add/delete/toggle tasks, complete DOM manipulation with event delegation
@@ -2227,7 +2575,7 @@ Respond with ONLY the JSON object, no additional text.`;
              */
             static handleCreateRequest(request) {
                 return {
-                    message: "I understand you want to create an app! However, I need my Gemini AI connection to generate complete applications from scratch.\n\n**🔧 To enable full AI app generation:**\n1. Click \"🔑 Setup Gemini AI\" button\n2. Get a free API key from https://makersuite.google.com/app/apikey\n3. Use command: `/api-key YOUR_API_KEY`\n\nOnce configured, I can create any app you imagine with complete HTML, CSS, and JavaScript code!",
+                    message: "I understand you want to create a droplet! However, I need my Gemini AI connection to generate complete applications from scratch.\n\n**🔧 To enable full AI droplet generation:**\n1. Click \"🔑 Setup Gemini AI\" button\n2. Get a free API key from https://makersuite.google.com/app/apikey\n3. Use command: `/api-key YOUR_API_KEY`\n\nOnce configured, I can create any droplet you imagine with complete HTML, CSS, and JavaScript code!",
                     action: null
                 };
             }
@@ -2242,12 +2590,12 @@ Respond with ONLY the JSON object, no additional text.`;
                 
                 if (apps.length === 0) {
                     return {
-                        message: "I don't see any apps to modify. Would you like me to create a new app first?"
+                        message: "I don't see any droplets to modify. Would you like me to create a new droplet first?"
                     };
                 }
                 
                 return {
-                    message: "I can help modify your existing apps! However, I need my Gemini AI connection to generate custom modifications.\n\n**🔧 To enable AI-powered modifications:**\n1. Click \"🔑 Setup Gemini AI\" button\n2. Get a free API key from https://makersuite.google.com/app/apikey\n3. Use command: `/api-key YOUR_API_KEY`\n\nOnce configured, I can modify any app with new features, styling, or functionality!"
+                    message: "I can help modify your existing droplets! However, I need my Gemini AI connection to generate custom modifications.\n\n**🔧 To enable AI-powered modifications:**\n1. Click \"🔑 Setup Gemini AI\" button\n2. Get a free API key from https://makersuite.google.com/app/apikey\n3. Use command: `/api-key YOUR_API_KEY`\n\nOnce configured, I can modify any droplet with new features, styling, or functionality!"
                 };
             }
 
@@ -2263,11 +2611,11 @@ Respond with ONLY the JSON object, no additional text.`;
                     };
                 } else if (request.includes('help')) {
                     return {
-                        message: "I can help you with:\n\n🔨 **Creating apps**: \"Build a calculator\", \"Make a weather app\", \"Create a photo gallery\"\n\n✏️ **Modifying apps**: \"Add dark mode\", \"Improve the design\", \"Add new features\"\n\n🗑️ **Managing apps**: \"Delete the app\", \"Run the app\"\n\n**⚡ For best results:** Configure Gemini AI for intelligent code generation!\n\nJust tell me what you want to do in natural language!"
+                        message: "I can help you with:\n\n🔨 **Creating droplets**: \"Build a calculator\", \"Make a weather widget\", \"Create a photo gallery\"\n\n✏️ **Modifying droplets**: \"Add dark mode\", \"Improve the design\", \"Add new features\"\n\n🗑️ **Managing droplets**: \"Delete the droplet\", \"Run the droplet\"\n\n**⚡ For best results:** Configure Gemini AI for intelligent code generation!\n\nJust tell me what you want to do in natural language!"
                     };
                 } else {
                     return {
-                        message: "I'm ready to help you build amazing web apps! Try asking me to create something like:\n\n• \"Build a password generator\"\n• \"Create a digital clock\"\n• \"Make a color picker tool\"\n• \"Build a simple drawing app\"\n\n**💡 Tip:** For full AI-powered generation, set up your Gemini API key!"
+                        message: "I'm ready to help you build amazing web droplets! Try asking me to create something like:\n\n• \"Build a password generator\"\n• \"Create a digital clock\"\n• \"Make a color picker tool\"\n• \"Build a simple drawing droplet\"\n\n**💡 Tip:** For full AI-powered generation, set up your Gemini API key!"
                     };
                 }
             }
@@ -2387,13 +2735,13 @@ Respond with ONLY the JSON object, no additional text.`;
             let statusMessage = '🚀 **Welcome to the Enhanced Autonomous App Marketplace!**\n\n';
             statusMessage += `**New Features:**\n`;
             statusMessage += `• 🤖 **Gemini AI Integration** ${hasApiKey ? '(Configured ✅)' : '(Setup Required 🔧)'}\n`;
-            statusMessage += `• 🛡️ **Security Validation** - All code is automatically validated\n`;
-            statusMessage += `• 💾 **Persistent Storage** - Apps are saved across sessions\n`;
+            statusMessage += `• 🛡️ **Security Validation** - All droplets are automatically validated\n`;
+            statusMessage += `• 💾 **Persistent Storage** - Droplets are saved across sessions\n`;
             statusMessage += `• 📊 **Complexity Analysis** - Get simpler versions of complex requests\n`;
             statusMessage += `• 🔄 **Queue Management** - Background processing for complex operations\n\n`;
             
             if (hasApps) {
-                statusMessage += `📁 **Loaded ${AppMarketplace.apps.size} saved apps**\n`;
+                statusMessage += `📁 **Loaded ${AppMarketplace.apps.size} saved droplets**\n`;
             }
             
             if (queueStatus.total > 0) {
