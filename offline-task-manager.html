@@ -1385,12 +1385,27 @@
         TaskManager.prototype.updateNetworkStatus = function() {
             if (!this.elements.statusDot || !this.elements.statusText) return;
             
+            // Check Service Worker status
+            const hasServiceWorker = 'serviceWorker' in navigator && navigator.serviceWorker.controller;
+            
             if (this.isOnline) {
                 this.elements.statusDot.classList.remove('offline');
-                this.elements.statusText.textContent = 'Online';
+                if (hasServiceWorker) {
+                    this.elements.statusText.textContent = 'Online + SW';
+                    this.elements.statusText.title = 'Online with Service Worker active';
+                } else {
+                    this.elements.statusText.textContent = 'Online';
+                    this.elements.statusText.title = 'Online (Service Worker not available)';
+                }
             } else {
                 this.elements.statusDot.classList.add('offline');
-                this.elements.statusText.textContent = 'Offline';
+                if (hasServiceWorker) {
+                    this.elements.statusText.textContent = 'Offline + SW';
+                    this.elements.statusText.title = 'Offline with Service Worker active';
+                } else {
+                    this.elements.statusText.textContent = 'Offline';
+                    this.elements.statusText.title = 'Offline (Service Worker not available)';
+                }
             }
         };
         
@@ -1594,24 +1609,290 @@
             }
         };
         
-        /**
-         * Handle network status change
-         */
-        TaskManager.prototype.handleNetworkChange = function(isOnline) {
-            this.isOnline = isOnline;
-            this.updateNetworkStatus();
+            /**
+             * Handle network status change with Service Worker integration
+             */
+            TaskManager.prototype.handleNetworkChange = function(isOnline) {
+                this.isOnline = isOnline;
+                this.updateNetworkStatus();
+                
+                console.log(`📡 Network status: ${isOnline ? 'Online' : 'Offline'}`);
+                
+                if (isOnline) {
+                    console.log('🔄 Connection restored - requesting background sync');
+                    // Trigger background sync when coming back online
+                    this.requestSync();
+                } else {
+                    console.log('📴 Working offline - operations will be queued');
+                }
+            };
             
-            console.log(`📡 Network status: ${isOnline ? 'Online' : 'Offline'}`);
+            /**
+             * Request immediate sync with Service Worker
+             */
+            TaskManager.prototype.requestSync = async function() {
+                try {
+                    if ('serviceWorker' in navigator && navigator.serviceWorker.ready) {
+                        const registration = await navigator.serviceWorker.ready;
+                        
+                        if (registration.active) {
+                            registration.active.postMessage({
+                                type: 'REQUEST_SYNC'
+                            });
+                            console.log('🔄 Sync requested via Service Worker');
+                        } else {
+                            console.log('⚠️ Service Worker not active - sync skipped');
+                        }
+                    } else {
+                        console.log('⚠️ Service Worker not available - sync skipped');
+                    }
+                } catch (error) {
+                    console.error('❌ Failed to request sync:', error);
+                }
+            };
             
-            if (isOnline) {
-                // Future: Sync queued operations
-                console.log('🔄 Connection restored - ready for sync');
-            } else {
-                console.log('📴 Working offline - changes will be queued');
-            }
-        };
-        
-        /**
+            /**
+             * Enhanced task creation with Service Worker integration
+             */
+            TaskManager.prototype.handleCreateTask = async function() {
+                if (this.isLoading) return;
+                
+                try {
+                    // Get form data
+                    const formData = this.getFormData();
+                    if (!formData.title.trim()) {
+                        this.showError('Please enter a task title');
+                        return;
+                    }
+                    
+                    this.setLoading(true);
+                    
+                    // Create optimistic task for immediate UI feedback
+                    const optimisticTask = {
+                        ...formData,
+                        id: 'temp-' + Date.now(),
+                        status: 'pending',
+                        createdAt: new Date().toISOString(),
+                        modifiedAt: new Date().toISOString(),
+                        completedAt: null,
+                        isOptimistic: true // Flag for UI styling
+                    };
+                    
+                    // 1. Immediately add to UI (optimistic update)
+                    this.tasks.unshift(optimisticTask);
+                    this.render();
+                    
+                    try {
+                        // 2. Persist to database
+                        const savedTask = await this.database.createTask(formData);
+                        
+                        // 3. Replace optimistic task with real data
+                        const index = this.tasks.findIndex(t => t.id === optimisticTask.id);
+                        if (index !== -1) {
+                            this.tasks[index] = savedTask;
+                        }
+                        
+                        // 4. Cache task data for offline access
+                        await safeCacheTaskData(savedTask);
+                        
+                        // 5. If offline, queue for background sync
+                        if (!this.isOnline) {
+                            await safeRequestBackgroundSync({
+                                type: 'CREATE_TASK',
+                                data: savedTask,
+                                timestamp: Date.now()
+                            });
+                        }
+                        
+                        // Clear form and re-render
+                        this.clearForm();
+                        this.render();
+                        
+                        console.log('✅ Task created successfully');
+                        
+                    } catch (error) {
+                        // 4. Rollback optimistic update on failure
+                        this.tasks = this.tasks.filter(t => t.id !== optimisticTask.id);
+                        this.render();
+                        throw error;
+                    }
+                    
+                } catch (error) {
+                    console.error('❌ Failed to create task:', error);
+                    this.showError('Failed to create task: ' + error.message);
+                } finally {
+                    this.setLoading(false);
+                }
+            };
+            
+            /**
+             * Enhanced task toggle with Service Worker integration
+             */
+            TaskManager.prototype.toggleTaskComplete = async function(taskId) {
+                try {
+                    const task = this.tasks.find(t => t.id === taskId);
+                    if (!task) return;
+                    
+                    const newStatus = task.status === 'completed' ? 'pending' : 'completed';
+                    const previousStatus = task.status;
+                    
+                    // Optimistic update
+                    task.status = newStatus;
+                    task.modifiedAt = new Date().toISOString();
+                    if (newStatus === 'completed') {
+                        task.completedAt = new Date().toISOString();
+                    } else {
+                        task.completedAt = null;
+                    }
+                    
+                    this.render();
+                    
+                    try {
+                        // Persist to database
+                        await this.database.updateTask(taskId, { status: newStatus });
+                        
+                        // Cache updated task
+                        await safeCacheTaskData(task);
+                        
+                        // Queue for background sync if offline
+                        if (!this.isOnline) {
+                            await safeRequestBackgroundSync({
+                                type: 'UPDATE_TASK',
+                                data: { id: taskId, status: newStatus },
+                                timestamp: Date.now()
+                            });
+                        }
+                        
+                        console.log(`✅ Task ${newStatus}:`, task.title);
+                        
+                    } catch (error) {
+                        // Rollback on failure
+                        task.status = previousStatus;
+                        task.modifiedAt = new Date().toISOString();
+                        if (previousStatus === 'completed') {
+                            task.completedAt = new Date().toISOString();
+                        } else {
+                            task.completedAt = null;
+                        }
+                        this.render();
+                        throw error;
+                    }
+                    
+                } catch (error) {
+                    console.error('❌ Failed to toggle task:', error);
+                    // Reload tasks to restore correct state
+                    await this.loadTasks();
+                    this.showError('Failed to update task');
+                }
+            };
+            
+            /**
+             * Enhanced task deletion with Service Worker integration
+             */
+            TaskManager.prototype.deleteTask = async function(taskId) {
+                if (!confirm('Are you sure you want to delete this task?')) {
+                    return;
+                }
+                
+                try {
+                    // Store task for potential rollback
+                    const taskIndex = this.tasks.findIndex(t => t.id === taskId);
+                    const deletedTask = this.tasks[taskIndex];
+                    
+                    if (taskIndex === -1) return;
+                    
+                    // Optimistic update
+                    this.tasks.splice(taskIndex, 1);
+                    this.render();
+                    
+                    try {
+                        // Persist to database
+                        await this.database.deleteTask(taskId);
+                        
+                        // Queue for background sync if offline
+                        if (!this.isOnline) {
+                            await safeRequestBackgroundSync({
+                                type: 'DELETE_TASK',
+                                data: { id: taskId },
+                                timestamp: Date.now()
+                            });
+                        }
+                        
+                        console.log('✅ Task deleted:', deletedTask?.title);
+                        
+                    } catch (error) {
+                        // Rollback on failure
+                        this.tasks.splice(taskIndex, 0, deletedTask);
+                        this.render();
+                        throw error;
+                    }
+                    
+                } catch (error) {
+                    console.error('❌ Failed to delete task:', error);
+                    // Reload tasks to restore correct state
+                    await this.loadTasks();
+                    this.showError('Failed to delete task');
+                }
+            };
+            
+            /**
+             * Enhanced task edit saving with Service Worker integration
+             */
+            TaskManager.prototype.saveTaskEdit = async function(taskId, formData) {
+                try {
+                    const updates = {
+                        title: formData.get('title'),
+                        description: formData.get('description'),
+                        priority: formData.get('priority'),
+                        dueDate: formData.get('dueDate') || null
+                    };
+                    
+                    // Store previous state for rollback
+                    const task = this.tasks.find(t => t.id === taskId);
+                    const previousState = { ...task };
+                    
+                    // Optimistic update
+                    if (task) {
+                        Object.assign(task, updates);
+                        task.modifiedAt = new Date().toISOString();
+                    }
+                    
+                    this.render();
+                    
+                    try {
+                        // Persist to database
+                        await this.database.updateTask(taskId, updates);
+                        
+                        // Cache updated task
+                        await safeCacheTaskData(task);
+                        
+                        // Queue for background sync if offline
+                        if (!this.isOnline) {
+                            await safeRequestBackgroundSync({
+                                type: 'UPDATE_TASK',
+                                data: { id: taskId, ...updates },
+                                timestamp: Date.now()
+                            });
+                        }
+                        
+                        console.log('✅ Task updated:', updates.title);
+                        
+                    } catch (error) {
+                        // Rollback on failure
+                        if (task) {
+                            Object.assign(task, previousState);
+                        }
+                        this.render();
+                        throw error;
+                    }
+                    
+                } catch (error) {
+                    console.error('❌ Failed to update task:', error);
+                    this.showError('Failed to update task: ' + error.message);
+                    await this.loadTasks();
+                    this.render();
+                }
+            };        /**
          * Setup network detection
          */
         TaskManager.prototype.setupNetworkDetection = function() {
@@ -1681,6 +1962,43 @@
             div.textContent = text || '';
             return div.innerHTML;
         };
+        
+        /**
+         * Helper functions for Service Worker features
+         * These functions safely handle cases where Service Worker is not available
+         */
+        
+        /**
+         * Safely cache task data if Service Worker is available
+         */
+        async function safeCacheTaskData(taskData) {
+            try {
+                if (typeof cacheTaskData === 'function') {
+                    await cacheTaskData(taskData);
+                    console.log('💾 Task data cached');
+                } else {
+                    console.log('⚠️ Cache function not available - skipping cache');
+                }
+            } catch (error) {
+                console.warn('⚠️ Failed to cache task data:', error.message);
+            }
+        }
+        
+        /**
+         * Safely request background sync if Service Worker is available
+         */
+        async function safeRequestBackgroundSync(operation) {
+            try {
+                if (typeof requestBackgroundSync === 'function') {
+                    await requestBackgroundSync(operation);
+                    console.log('🔄 Background sync requested');
+                } else {
+                    console.log('⚠️ Background sync not available - operation will sync when online');
+                }
+            } catch (error) {
+                console.warn('⚠️ Failed to request background sync:', error.message);
+            }
+        }
         
         /**
          * Format date/time for display
@@ -1755,22 +2073,61 @@
          * Initialize the application when DOM is ready
          */
         document.addEventListener('DOMContentLoaded', async function() {
-            console.log('🚀 Starting Offline Task Manager...');
-            
+            await initializeApp();
+        });
+        
+        // Initialize Service Worker and Task Manager
+        async function initializeApp() {
             try {
-                // Create and initialize task manager
+                console.log('🚀 Initializing Offline Task Manager...');
+                
+                // Try to register and initialize Service Worker
+                if ('serviceWorker' in navigator) {
+                    try {
+                        await initializeServiceWorker();
+                        console.log('✅ Service Worker initialized');
+                    } catch (swError) {
+                        console.warn('⚠️ Service Worker initialization failed:', swError.message);
+                        console.log('📱 App will continue without Service Worker features');
+                        
+                        // Show helpful banner if it's due to file:// protocol
+                        if (location.protocol === 'file:') {
+                            showServiceWorkerBanner();
+                        }
+                    }
+                } else {
+                    console.warn('⚠️ Service Worker not supported in this browser');
+                }
+                
+                // Initialize task manager (this should always work)
                 taskManager = new TaskManager();
                 await taskManager.init();
                 
-                // Setup PWA features
-                setupPWA();
+                // Setup PWA features (only if possible)
+                try {
+                    setupPWA();
+                } catch (pwaError) {
+                    console.warn('⚠️ PWA features unavailable:', pwaError.message);
+                }
                 
-                console.log('✅ Application initialized successfully!');
+                // Setup global access for debugging
+                const urlParams = new URLSearchParams(window.location.search);
+                if (urlParams.has('debug')) {
+                    window.taskManager = taskManager;
+                    window.safeCacheTaskData = safeCacheTaskData;
+                    window.safeRequestBackgroundSync = safeRequestBackgroundSync;
+                    // Also expose direct functions if they exist
+                    if (typeof cacheTaskData !== 'undefined') window.cacheTaskData = cacheTaskData;
+                    if (typeof requestBackgroundSync !== 'undefined') window.requestBackgroundSync = requestBackgroundSync;
+                    console.log('🔧 Debug mode enabled - global access available');
+                }
+                
+                console.log('✅ App initialization complete');
                 
             } catch (error) {
-                console.error('❌ Failed to initialize application:', error);
+                console.error('❌ Failed to initialize app:', error);
                 
-                // Show fallback UI
+                // Show user-friendly error
                 document.body.innerHTML = `
                     <div style="
                         display: flex; 
@@ -1788,6 +2145,7 @@
                                 Failed to initialize the task manager. This might be due to your browser 
                                 not supporting IndexedDB or other required features.
                             </p>
+                            <p><strong>Error:</strong> ${error.message}</p>
                             <button onclick="location.reload()" style="
                                 padding: 0.75rem 1.5rem;
                                 background: var(--color-primary);
@@ -1802,12 +2160,372 @@
                     </div>
                 `;
             }
+        }
+        
+        /**
+         * Show informational banner about Service Worker limitations
+         */
+        function showServiceWorkerBanner() {
+            // Don't show if banner already exists
+            if (document.getElementById('sw-info-banner')) return;
+            
+            const banner = document.createElement('div');
+            banner.id = 'sw-info-banner';
+            banner.innerHTML = `
+                <div style="
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white;
+                    padding: 1rem;
+                    text-align: center;
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    z-index: 1000;
+                    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                    transform: translateY(-100%);
+                    transition: transform 0.3s ease-in-out;
+                ">
+                    <div style="max-width: 800px; margin: 0 auto; font-size: 0.9rem;">
+                        <strong>ℹ️ Limited Offline Features</strong>
+                        <p style="margin: 0.5rem 0; opacity: 0.9;">
+                            For full offline capabilities including background sync, serve this file via HTTP:
+                            <code style="background: rgba(255,255,255,0.2); padding: 0.2rem 0.4rem; border-radius: 3px; margin: 0 0.5rem;">python -m http.server 8080</code>
+                        </p>
+                        <div style="margin-top: 0.5rem;">
+                            <button onclick="copyServerCommand()" style="
+                                background: rgba(255,255,255,0.2);
+                                border: 1px solid rgba(255,255,255,0.3);
+                                color: white;
+                                padding: 0.3rem 0.8rem;
+                                border-radius: 4px;
+                                margin-right: 0.5rem;
+                                cursor: pointer;
+                                font-size: 0.8rem;
+                            ">Copy Command</button>
+                            <button onclick="dismissServiceWorkerBanner()" style="
+                                background: transparent;
+                                border: 1px solid rgba(255,255,255,0.3);
+                                color: white;
+                                padding: 0.3rem 0.8rem;
+                                border-radius: 4px;
+                                cursor: pointer;
+                                font-size: 0.8rem;
+                            ">Dismiss</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(banner);
+            
+            // Animate in
+            setTimeout(() => {
+                banner.firstElementChild.style.transform = 'translateY(0)';
+            }, 100);
+            
+            // Auto-dismiss after 10 seconds
+            setTimeout(() => {
+                dismissServiceWorkerBanner();
+            }, 10000);
+        }
+        
+        function copyServerCommand() {
+            const command = 'python -m http.server 8080';
+            navigator.clipboard.writeText(command).then(() => {
+                console.log('📋 Server command copied to clipboard');
+                // Show brief feedback
+                const button = event.target;
+                const originalText = button.textContent;
+                button.textContent = 'Copied!';
+                setTimeout(() => {
+                    button.textContent = originalText;
+                }, 1000);
+            }).catch(() => {
+                console.log('💡 Copy this command: ' + command);
+            });
+        }
+        
+        function dismissServiceWorkerBanner() {
+            const banner = document.getElementById('sw-info-banner');
+            if (banner) {
+                banner.firstElementChild.style.transform = 'translateY(-100%)';
+                setTimeout(() => banner.remove(), 300);
+            }
+        }
+        
+        /**
+         * Initialize and register Service Worker
+         */
+        async function initializeServiceWorker() {
+            try {
+                // Check if we're in a supported environment
+                if (!('serviceWorker' in navigator)) {
+                    throw new Error('Service Worker not supported');
+                }
+                
+                // Check current protocol and environment
+                const protocol = location.protocol;
+                const hostname = location.hostname;
+                
+                console.log(`🔍 Current environment: ${protocol}//${hostname || 'file'}`);
+                
+                // Service Workers have limitations with file:// protocol
+                if (protocol === 'file:') {
+                    console.warn('⚠️ Service Worker limitations with file:// protocol');
+                    console.log('💡 For full Service Worker support, serve the file via HTTP server:');
+                    console.log('   - python -m http.server 8080');
+                    console.log('   - then open http://localhost:8080/offline-task-manager.html');
+                    throw new Error('Service Worker not supported with file:// protocol');
+                }
+                
+                // Check if we're in a secure context
+                const isSecureContext = protocol === 'https:' || 
+                                      hostname === 'localhost' || 
+                                      hostname === '127.0.0.1';
+                
+                if (!isSecureContext) {
+                    console.warn('⚠️ Service Worker requires HTTPS or localhost');
+                    throw new Error('Service Worker requires secure context');
+                }
+                
+                // Register Service Worker using the dedicated sw.js file
+                console.log('🔧 Registering Service Worker: sw.js');
+                
+                const registration = await navigator.serviceWorker.register('sw.js', {
+                    scope: './'
+                });
+                
+                console.log('✅ Service Worker registered:', registration);
+                
+                // Setup message handling
+                setupServiceWorkerMessaging();
+                
+                // Setup background sync
+                setupBackgroundSync(registration);
+                
+                // Handle registration events
+                registration.addEventListener('updatefound', () => {
+                    console.log('🔄 Service Worker update found');
+                    const newWorker = registration.installing;
+                    
+                    newWorker.addEventListener('statechange', () => {
+                        if (newWorker.state === 'activated') {
+                            console.log('✅ Service Worker updated and activated');
+                            // Optional: Show user notification about update
+                        }
+                    });
+                });
+                
+                // Wait for Service Worker to be ready
+                await navigator.serviceWorker.ready;
+                console.log('✅ Service Worker ready');
+                
+                return registration;
+                
+                // Create Service Worker file dynamically using a more reliable method
+                // We'll use a combination of URL.createObjectURL with proper cleanup
+                try {
+                    // First, try to create and register a temporary SW file
+                    const response = await createServiceWorkerFile(serviceWorkerCode);
+                    
+                    if (response) {
+                        const registration = await navigator.serviceWorker.register(response.url, {
+                            scope: './'
+                        });
+                        console.log('✅ Service Worker registered:', registration);
+                        return registration;
+                    }
+                } catch (error) {
+                    console.log('� Fallback: Trying alternative registration method');
+                }
+                
+                // Fallback: Try direct registration with better error handling
+                await registerServiceWorkerFallback(serviceWorkerCode);
+                
+                // Setup message handling
+                setupServiceWorkerMessaging();
+                
+                // Setup background sync
+                setupBackgroundSync();
+                
+                // Handle registration events
+                registration.addEventListener('updatefound', () => {
+                    console.log('🔄 Service Worker update found');
+                    const newWorker = registration.installing;
+                    
+                    newWorker.addEventListener('statechange', () => {
+                        if (newWorker.state === 'activated') {
+                            console.log('✅ Service Worker updated and activated');
+                            // Optional: Show user notification about update
+                        }
+                    });
+                });
+                
+                // Wait for Service Worker to be ready
+                await navigator.serviceWorker.ready;
+                console.log('✅ Service Worker ready');
+                
+                return registration;
+                
+            } catch (error) {
+                console.error('❌ Service Worker registration failed:', error);
+                throw error;
+            }
+        }
+        
+        /**
+         * Setup Service Worker messaging system
+         */
+        function setupServiceWorkerMessaging() {
+            navigator.serviceWorker.addEventListener('message', handleServiceWorkerMessage);
+            
+            // Handle messages from Service Worker
+            navigator.serviceWorker.addEventListener('message', (event) => {
+                const { type, data } = event.data;
+                
+                switch (type) {
+                    case 'SYNC_COMPLETE':
+                        console.log('🔄 Background sync completed:', data);
+                        // Optional: Refresh data or show notification
+                        break;
+                        
+                    case 'CACHE_UPDATED':
+                        console.log('💾 Cache updated:', data);
+                        break;
+                        
+                    case 'NOTIFICATION_CLICKED':
+                        console.log('🔔 Notification clicked:', data);
+                        // Handle notification actions
+                        break;
+                        
+                    default:
+                        console.log('📨 Service Worker message:', event.data);
+                }
+            });
+        }
+        
+        /**
+         * Handle app installation prompt
+         */
+        let deferredPrompt;
+        
+        window.addEventListener('beforeinstallprompt', (e) => {
+            // Prevent the mini-infobar from appearing on mobile
+            e.preventDefault();
+            // Stash the event so it can be triggered later
+            deferredPrompt = e;
+            
+            // Show install button or banner
+            showInstallPrompt();
+        });
+        
+        function showInstallPrompt() {
+            // Create install prompt UI
+            const installBanner = document.createElement('div');
+            installBanner.id = 'install-banner';
+            installBanner.innerHTML = `
+                <div style="
+                    position: fixed;
+                    bottom: 0;
+                    left: 0;
+                    right: 0;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white;
+                    padding: 1rem;
+                    text-align: center;
+                    box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+                    z-index: 1000;
+                    transform: translateY(100%);
+                    transition: transform 0.3s ease-in-out;
+                " onclick="installApp()">
+                    <div style="max-width: 600px; margin: 0 auto;">
+                        <strong>📱 Install Task Manager</strong>
+                        <p style="margin: 0.5rem 0; opacity: 0.9;">Add to home screen for quick access</p>
+                        <button onclick="installApp(); event.stopPropagation();" style="
+                            background: rgba(255,255,255,0.2);
+                            border: 1px solid rgba(255,255,255,0.3);
+                            color: white;
+                            padding: 0.5rem 1rem;
+                            border-radius: 4px;
+                            margin-right: 1rem;
+                            cursor: pointer;
+                        ">Install</button>
+                        <button onclick="dismissInstallPrompt(); event.stopPropagation();" style="
+                            background: transparent;
+                            border: 1px solid rgba(255,255,255,0.3);
+                            color: white;
+                            padding: 0.5rem 1rem;
+                            border-radius: 4px;
+                            cursor: pointer;
+                        ">Maybe Later</button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(installBanner);
+            
+            // Animate in
+            setTimeout(() => {
+                installBanner.firstElementChild.style.transform = 'translateY(0)';
+            }, 100);
+        }
+        
+        async function installApp() {
+            if (deferredPrompt) {
+                // Show the install prompt
+                deferredPrompt.prompt();
+                
+                // Wait for the user to respond
+                const { outcome } = await deferredPrompt.userChoice;
+                console.log(`👤 User response to install prompt: ${outcome}`);
+                
+                // Clear the deferred prompt
+                deferredPrompt = null;
+                
+                // Remove install banner
+                dismissInstallPrompt();
+            }
+        }
+        
+        function dismissInstallPrompt() {
+            const banner = document.getElementById('install-banner');
+            if (banner) {
+                banner.firstElementChild.style.transform = 'translateY(100%)';
+                setTimeout(() => banner.remove(), 300);
+            }
+        }
+        
+        // Handle app installed event
+        window.addEventListener('appinstalled', (evt) => {
+            console.log('📱 App was installed');
+            // Optional: Track installation or show success message
         });
         
         /**
-         * Setup Progressive Web App features
+         * 🔍 MAJOR FUNCTION POINT #8: SERVICE WORKER IMPLEMENTATION
+         * 
+         * Service Workers provide the foundation for offline-first functionality:
+         * - 🔄 **Background sync** for reliable data synchronization
+         * - 📦 **Cache management** for offline app shell and resources
+         * - 🔔 **Push notifications** for task reminders and updates
+         * - 🛡️ **Network interception** for graceful offline fallbacks
+         * - ⚡ **Background processing** without blocking UI
+         * 
+         * Key Benefits:
+         * - True offline functionality - app works without internet
+         * - Reliable sync when connection is restored
+         * - Native app-like experience with background operations
+         * - Improved performance through intelligent caching
          */
-        function setupPWA() {
+        
+        /**
+         * Setup Progressive Web App features with Service Worker
+         */
+        async function setupPWA() {
+            // Register Service Worker first
+            await initializeServiceWorker();
+            
             // Create and inject manifest
             const manifestData = {
                 name: 'Offline Task Manager',
@@ -1863,15 +2581,596 @@
         }
         
         /**
-         * Handle beforeunload to warn about unsaved changes
+         * Generate Service Worker code as string (embedded approach)
          */
-        window.addEventListener('beforeunload', function(e) {
-            // Future: Check for unsaved changes
-            // if (hasUnsavedChanges) {
-            //     e.preventDefault();
-            //     e.returnValue = '';
-            // }
-        });
+        function generateServiceWorkerCode() {
+            return `
+                'use strict';
+                
+                /* ============================================
+                   🔧 SERVICE WORKER CONFIGURATION
+                   ============================================ */
+                
+                const CACHE_NAME = 'task-manager-v1.0';
+                const STATIC_CACHE = 'task-manager-static';
+                const SYNC_TAG = 'task-sync';
+                
+                // Cache strategies
+                const CACHE_STRATEGIES = {
+                    CACHE_FIRST: 'cache-first',
+                    NETWORK_FIRST: 'network-first',
+                    CACHE_ONLY: 'cache-only',
+                    NETWORK_ONLY: 'network-only'
+                };
+                
+                /* ============================================
+                   📦 SERVICE WORKER LIFECYCLE
+                   ============================================ */
+                
+                // Installation phase
+                self.addEventListener('install', event => {
+                    console.log('🔧 Service Worker installing...');
+                    
+                    event.waitUntil(
+                        caches.open(STATIC_CACHE).then(cache => {
+                            // Cache the main application (self)
+                            return cache.add('/');
+                        }).then(() => {
+                            console.log('✅ Static assets cached');
+                            // Force activation
+                            return self.skipWaiting();
+                        })
+                    );
+                });
+                
+                // Activation phase
+                self.addEventListener('activate', event => {
+                    console.log('🚀 Service Worker activating...');
+                    
+                    event.waitUntil(
+                        Promise.all([
+                            // Clean up old caches
+                            caches.keys().then(cacheNames => {
+                                return Promise.all(
+                                    cacheNames.map(cacheName => {
+                                        if (cacheName !== CACHE_NAME && cacheName !== STATIC_CACHE) {
+                                            console.log('🗑️ Deleting old cache:', cacheName);
+                                            return caches.delete(cacheName);
+                                        }
+                                    })
+                                );
+                            }),
+                            // Take control of all clients
+                            self.clients.claim()
+                        ]).then(() => {
+                            console.log('✅ Service Worker activated and ready');
+                        })
+                    );
+                });
+                
+                /* ============================================
+                   🌐 NETWORK INTERCEPTION & CACHING
+                   ============================================ */
+                
+                // Fetch event handling
+                self.addEventListener('fetch', event => {
+                    const request = event.request;
+                    const url = new URL(request.url);
+                    
+                    // Only handle same-origin requests
+                    if (url.origin !== location.origin) {
+                        return;
+                    }
+                    
+                    // Determine cache strategy based on request
+                    const strategy = getCacheStrategy(request);
+                    
+                    event.respondWith(handleRequest(request, strategy));
+                });
+                
+                /**
+                 * Determine appropriate cache strategy
+                 */
+                function getCacheStrategy(request) {
+                    const url = new URL(request.url);
+                    
+                    // HTML files: Network first (for updates)
+                    if (request.destination === 'document') {
+                        return CACHE_STRATEGIES.NETWORK_FIRST;
+                    }
+                    
+                    // API calls: Network first
+                    if (url.pathname.includes('/api/')) {
+                        return CACHE_STRATEGIES.NETWORK_FIRST;
+                    }
+                    
+                    // Static assets: Cache first
+                    return CACHE_STRATEGIES.CACHE_FIRST;
+                }
+                
+                /**
+                 * Handle request with specified strategy
+                 */
+                async function handleRequest(request, strategy) {
+                    const cache = await caches.open(CACHE_NAME);
+                    
+                    switch (strategy) {
+                        case CACHE_STRATEGIES.CACHE_FIRST:
+                            return handleCacheFirst(request, cache);
+                            
+                        case CACHE_STRATEGIES.NETWORK_FIRST:
+                            return handleNetworkFirst(request, cache);
+                            
+                        case CACHE_STRATEGIES.CACHE_ONLY:
+                            return cache.match(request);
+                            
+                        case CACHE_STRATEGIES.NETWORK_ONLY:
+                            return fetch(request);
+                            
+                        default:
+                            return handleCacheFirst(request, cache);
+                    }
+                }
+                
+                /**
+                 * Cache-first strategy
+                 */
+                async function handleCacheFirst(request, cache) {
+                    const cachedResponse = await cache.match(request);
+                    
+                    if (cachedResponse) {
+                        // Return cached version immediately
+                        return cachedResponse;
+                    }
+                    
+                    try {
+                        // Fetch and cache for future use
+                        const networkResponse = await fetch(request);
+                        cache.put(request, networkResponse.clone());
+                        return networkResponse;
+                    } catch (error) {
+                        console.log('📴 Network unavailable for:', request.url);
+                        // Return offline fallback if available
+                        return getOfflineFallback(request);
+                    }
+                }
+                
+                /**
+                 * Network-first strategy
+                 */
+                async function handleNetworkFirst(request, cache) {
+                    try {
+                        // Try network first
+                        const networkResponse = await fetch(request);
+                        
+                        // Cache successful responses
+                        if (networkResponse.ok) {
+                            cache.put(request, networkResponse.clone());
+                        }
+                        
+                        return networkResponse;
+                    } catch (error) {
+                        console.log('📴 Network failed, trying cache for:', request.url);
+                        
+                        // Fallback to cache
+                        const cachedResponse = await cache.match(request);
+                        if (cachedResponse) {
+                            return cachedResponse;
+                        }
+                        
+                        // Return offline fallback
+                        return getOfflineFallback(request);
+                    }
+                }
+                
+                /**
+                 * Get offline fallback response
+                 */
+                function getOfflineFallback(request) {
+                    if (request.destination === 'document') {
+                        // Return a simple offline page for HTML requests
+                        return new Response(
+                            '<html><body><h1>📴 Offline</h1><p>You are currently offline. Please check your connection and try again.</p></body></html>',
+                            { headers: { 'Content-Type': 'text/html' } }
+                        );
+                    }
+                    
+                    // For other requests, return a basic error response
+                    return new Response('Offline', { status: 503, statusText: 'Service Unavailable' });
+                }
+                
+                /* ============================================
+                   🔄 BACKGROUND SYNC
+                   ============================================ */
+                
+                // Background sync event
+                self.addEventListener('sync', event => {
+                    console.log('🔄 Background sync triggered:', event.tag);
+                    
+                    if (event.tag === SYNC_TAG) {
+                        event.waitUntil(syncTasks());
+                    }
+                });
+                
+                /**
+                 * Sync pending tasks when connection is restored
+                 */
+                async function syncTasks() {
+                    try {
+                        console.log('🔄 Starting task synchronization...');
+                        
+                        // Get pending sync operations from IndexedDB
+                        const pendingOperations = await getPendingSyncOperations();
+                        
+                        if (pendingOperations.length === 0) {
+                            console.log('✅ No pending operations to sync');
+                            return;
+                        }
+                        
+                        console.log(\`🔄 Syncing \${pendingOperations.length} pending operations...\`);
+                        
+                        // Process each pending operation
+                        for (const operation of pendingOperations) {
+                            try {
+                                await processSyncOperation(operation);
+                                await removeSyncOperation(operation.id);
+                                console.log('✅ Synced operation:', operation.type);
+                            } catch (error) {
+                                console.error('❌ Failed to sync operation:', operation, error);
+                                // Keep operation for next sync attempt
+                            }
+                        }
+                        
+                        // Notify main thread of sync completion
+                        notifyClientsOfSync();
+                        
+                        console.log('✅ Background sync completed');
+                        
+                    } catch (error) {
+                        console.error('❌ Background sync failed:', error);
+                        throw error; // Retry sync later
+                    }
+                }
+                
+                /**
+                 * Get pending sync operations from IndexedDB
+                 */
+                async function getPendingSyncOperations() {
+                    // This would interface with IndexedDB to get pending operations
+                    // For now, return empty array (to be implemented with full sync system)
+                    return [];
+                }
+                
+                /**
+                 * Process a single sync operation
+                 */
+                async function processSyncOperation(operation) {
+                    // This would handle the actual sync logic
+                    // (to be implemented with full sync system)
+                    console.log('Processing sync operation:', operation);
+                }
+                
+                /**
+                 * Remove completed sync operation
+                 */
+                async function removeSyncOperation(operationId) {
+                    // Remove from IndexedDB pending operations
+                    console.log('Removing sync operation:', operationId);
+                }
+                
+                /**
+                 * Notify all clients of sync completion
+                 */
+                function notifyClientsOfSync() {
+                    self.clients.matchAll().then(clients => {
+                        clients.forEach(client => {
+                            client.postMessage({
+                                type: 'SYNC_COMPLETED',
+                                timestamp: Date.now()
+                            });
+                        });
+                    });
+                }
+                
+                /* ============================================
+                   🔔 PUSH NOTIFICATIONS
+                   ============================================ */
+                
+                // Push notification event
+                self.addEventListener('push', event => {
+                    console.log('🔔 Push notification received');
+                    
+                    const options = {
+                        body: 'You have pending tasks to complete',
+                        icon: '/icon-192.png',
+                        badge: '/badge-72.png',
+                        tag: 'task-reminder',
+                        requireInteraction: false,
+                        actions: [
+                            {
+                                action: 'open',
+                                title: 'Open Tasks'
+                            },
+                            {
+                                action: 'dismiss',
+                                title: 'Dismiss'
+                            }
+                        ]
+                    };
+                    
+                    if (event.data) {
+                        const data = event.data.json();
+                        options.body = data.message || options.body;
+                        options.data = data;
+                    }
+                    
+                    event.waitUntil(
+                        self.registration.showNotification('Task Manager', options)
+                    );
+                });
+                
+                // Notification click event
+                self.addEventListener('notificationclick', event => {
+                    console.log('🔔 Notification clicked:', event.action);
+                    
+                    event.notification.close();
+                    
+                    if (event.action === 'open' || !event.action) {
+                        // Open the app
+                        event.waitUntil(
+                            self.clients.matchAll().then(clients => {
+                                // Focus existing window if available
+                                for (const client of clients) {
+                                    if (client.url.includes('/') && 'focus' in client) {
+                                        return client.focus();
+                                    }
+                                }
+                                
+                                // Open new window
+                                if (self.clients.openWindow) {
+                                    return self.clients.openWindow('/');
+                                }
+                            })
+                        );
+                    }
+                    
+                    // Handle other actions (dismiss, etc.)
+                    // Can be extended for specific task actions
+                });
+                
+                /* ============================================
+                   📱 MESSAGE HANDLING
+                   ============================================ */
+                
+                // Handle messages from main thread
+                self.addEventListener('message', event => {
+                    console.log('📨 Service Worker received message:', event.data);
+                    
+                    const { type, data } = event.data;
+                    
+                    switch (type) {
+                        case 'SKIP_WAITING':
+                            self.skipWaiting();
+                            break;
+                            
+                        case 'CACHE_TASK_DATA':
+                            // Cache task data for offline access
+                            cacheTaskData(data);
+                            break;
+                            
+                        case 'QUEUE_SYNC':
+                            // Queue operation for background sync
+                            queueSyncOperation(data);
+                            break;
+                            
+                        case 'REQUEST_SYNC':
+                            // Request immediate sync if possible
+                            triggerSync();
+                            break;
+                            
+                        default:
+                            console.log('Unknown message type:', type);
+                    }
+                });
+                
+                /**
+                 * Cache task data for offline access
+                 */
+                async function cacheTaskData(taskData) {
+                    try {
+                        const cache = await caches.open(CACHE_NAME);
+                        const response = new Response(JSON.stringify(taskData));
+                        await cache.put('/task-data', response);
+                        console.log('✅ Task data cached for offline access');
+                    } catch (error) {
+                        console.error('❌ Failed to cache task data:', error);
+                    }
+                }
+                
+                /**
+                 * Queue operation for background sync
+                 */
+                function queueSyncOperation(operation) {
+                    // This would add the operation to IndexedDB for later sync
+                    console.log('📋 Queued sync operation:', operation);
+                }
+                
+                /**
+                 * Trigger immediate sync if online
+                 */
+                function triggerSync() {
+                    if (navigator.onLine) {
+                        syncTasks().catch(error => {
+                            console.error('❌ Manual sync failed:', error);
+                        });
+                    } else {
+                        console.log('📴 Cannot sync while offline');
+                    }
+                }
+                
+                console.log('✅ Service Worker script loaded successfully');
+            `;
+        }
+        
+        /**
+         * Setup background sync for offline operations
+         */
+        async function setupBackgroundSync(registration) {
+            if (!('sync' in window.ServiceWorkerRegistration.prototype)) {
+                console.warn('⚠️ Background Sync not supported');
+                return false;
+            }
+            
+            try {
+                // Register for background sync
+                await registration.sync.register('task-sync');
+                console.log('✅ Background sync registered');
+                return true;
+            } catch (error) {
+                console.error('❌ Background sync registration failed:', error);
+                return false;
+            }
+        }
+        
+        /**
+         * Handle messages from Service Worker
+         */
+        function handleServiceWorkerMessage(event) {
+            const { type, data } = event.data;
+            
+            switch (type) {
+                case 'SYNC_COMPLETED':
+                    console.log('🔄 Background sync completed');
+                    if (window.taskManager) {
+                        // Reload tasks to get any synced changes
+                        window.taskManager.loadTasks().then(() => {
+                            window.taskManager.render();
+                        });
+                    }
+                    break;
+                    
+                case 'CACHE_UPDATED':
+                    console.log('📦 Cache updated');
+                    break;
+                    
+                case 'SYNC_ERROR':
+                    console.error('❌ Background sync error:', data);
+                    break;
+                    
+                default:
+                    console.log('📨 Unknown message from Service Worker:', type);
+            }
+        }
+        
+        /**
+         * Show update available notification
+         */
+        function showUpdateAvailableNotification() {
+            const updateBanner = document.createElement('div');
+            updateBanner.className = 'update-banner';
+            updateBanner.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                background: var(--color-primary);
+                color: white;
+                padding: var(--space-md);
+                text-align: center;
+                z-index: 1000;
+                box-shadow: var(--shadow-md);
+            `;
+            
+            updateBanner.innerHTML = `
+                <p style="margin: 0; margin-bottom: var(--space-sm);">
+                    🔄 A new version of the app is available
+                </p>
+                <button onclick="location.reload()" style="
+                    background: white;
+                    color: var(--color-primary);
+                    border: none;
+                    padding: var(--space-xs) var(--space-md);
+                    border-radius: var(--radius-md);
+                    cursor: pointer;
+                    font-weight: 500;
+                    margin-right: var(--space-sm);
+                ">
+                    Update Now
+                </button>
+                <button onclick="this.parentElement.remove()" style="
+                    background: transparent;
+                    color: white;
+                    border: 1px solid white;
+                    padding: var(--space-xs) var(--space-md);
+                    border-radius: var(--radius-md);
+                    cursor: pointer;
+                    font-weight: 500;
+                ">
+                    Later
+                </button>
+            `;
+            
+            document.body.appendChild(updateBanner);
+        }
+        
+        /**
+         * Request background sync for pending operations
+         */
+        async function requestBackgroundSync(operation) {
+            if (!('serviceWorker' in navigator) || !navigator.serviceWorker.ready) {
+                console.warn('⚠️ Service Worker not available for background sync');
+                return false;
+            }
+            
+            try {
+                const registration = await navigator.serviceWorker.ready;
+                
+                // Send operation to Service Worker for queuing
+                if (registration.active) {
+                    registration.active.postMessage({
+                        type: 'QUEUE_SYNC',
+                        data: operation
+                    });
+                }
+                
+                // Register for background sync
+                if ('sync' in registration) {
+                    await registration.sync.register('task-sync');
+                    console.log('🔄 Background sync requested for:', operation.type);
+                    return true;
+                }
+                
+                return false;
+            } catch (error) {
+                console.error('❌ Failed to request background sync:', error);
+                return false;
+            }
+        }
+        
+        /**
+         * Cache task data for offline access
+         */
+        async function cacheTaskData(taskData) {
+            if (!('serviceWorker' in navigator) || !navigator.serviceWorker.ready) {
+                return false;
+            }
+            
+            try {
+                const registration = await navigator.serviceWorker.ready;
+                
+                if (registration.active) {
+                    registration.active.postMessage({
+                        type: 'CACHE_TASK_DATA',
+                        data: taskData
+                    });
+                }
+                
+                return true;
+            } catch (error) {
+                console.error('❌ Failed to cache task data:', error);
+                return false;
+            }
+        }
         
         /**
          * Handle visibility change for background operations
