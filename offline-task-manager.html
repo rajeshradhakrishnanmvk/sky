@@ -169,6 +169,43 @@
             background-color: var(--color-danger);
         }
         
+        /* Sync Status */
+        .sync-status {
+            display: flex;
+            align-items: center;
+            gap: var(--space-xs);
+            margin-left: var(--space-md);
+            font-size: 0.875rem;
+            color: var(--color-text-secondary);
+        }
+        
+        .sync-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--color-primary);
+            position: relative;
+        }
+        
+        .sync-dot.syncing {
+            background-color: var(--color-warning);
+            animation: pulse 2s infinite;
+        }
+        
+        .sync-dot.error {
+            background-color: var(--color-danger);
+        }
+        
+        .sync-dot.multi-tab {
+            background-color: var(--color-success);
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.2); }
+        }
+        
         /* Sidebar */
         .app-sidebar {
             grid-area: sidebar;
@@ -467,6 +504,10 @@
                 <div class="status-indicator">
                     <div class="status-dot" id="status-dot"></div>
                     <span id="status-text">Online</span>
+                    <div class="sync-status" id="sync-status">
+                        <div class="sync-dot" id="sync-dot"></div>
+                        <span id="sync-text">Sync Ready</span>
+                    </div>
                 </div>
             </div>
         </header>
@@ -943,9 +984,228 @@
          * - Controller: TaskManager (business logic layer)
          */
         
+        /**
+         * CrossTabSyncManager - Handles real-time synchronization across browser tabs
+         * Uses BroadcastChannel API for inter-tab communication
+         */
+        class CrossTabSyncManager {
+            constructor() {
+                this.channelName = 'task-manager-sync';
+                this.tabId = this.generateTabId();
+                this.channel = null;
+                this.isSupported = this.checkBroadcastChannelSupport();
+                this.syncCallbacks = new Map();
+                this.lastSyncTimestamp = Date.now();
+                
+                console.log(`🔄 CrossTabSyncManager initialized for tab: ${this.tabId}`);
+                
+                if (this.isSupported) {
+                    this.initializeChannel();
+                }
+            }
+            
+            /**
+             * Generate unique tab identifier
+             */
+            generateTabId() {
+                return `tab-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+            }
+            
+            /**
+             * Check if BroadcastChannel is supported
+             */
+            checkBroadcastChannelSupport() {
+                return typeof BroadcastChannel !== 'undefined';
+            }
+            
+            /**
+             * Initialize BroadcastChannel for tab communication
+             */
+            initializeChannel() {
+                try {
+                    this.channel = new BroadcastChannel(this.channelName);
+                    this.channel.addEventListener('message', this.handleMessage.bind(this));
+                    
+                    console.log(`✅ BroadcastChannel initialized: ${this.channelName}`);
+                    
+                    // Announce this tab's presence
+                    this.broadcast({
+                        type: 'TAB_CONNECTED',
+                        tabId: this.tabId,
+                        timestamp: Date.now()
+                    });
+                    
+                } catch (error) {
+                    console.error('❌ Failed to initialize BroadcastChannel:', error);
+                    this.isSupported = false;
+                }
+            }
+            
+            /**
+             * Handle incoming messages from other tabs
+             */
+            handleMessage(event) {
+                try {
+                    const { type, data, tabId, timestamp } = event.data;
+                    
+                    // Ignore messages from this tab
+                    if (tabId === this.tabId) {
+                        return;
+                    }
+                    
+                    console.log(`📨 Received sync message from ${tabId}:`, type, data);
+                    
+                    // Update last sync timestamp
+                    if (timestamp > this.lastSyncTimestamp) {
+                        this.lastSyncTimestamp = timestamp;
+                    }
+                    
+                    // Execute registered callbacks for this message type
+                    if (this.syncCallbacks.has(type)) {
+                        const callbacks = this.syncCallbacks.get(type);
+                        callbacks.forEach(callback => {
+                            try {
+                                callback(data, tabId, timestamp);
+                            } catch (error) {
+                                console.error(`❌ Sync callback error for ${type}:`, error);
+                            }
+                        });
+                    }
+                    
+                } catch (error) {
+                    console.error('❌ Error handling sync message:', error);
+                }
+            }
+            
+            /**
+             * Broadcast message to all other tabs
+             */
+            broadcast(message) {
+                if (!this.isSupported || !this.channel) {
+                    console.warn('⚠️ BroadcastChannel not available, sync disabled');
+                    return false;
+                }
+                
+                try {
+                    const syncMessage = {
+                        ...message,
+                        tabId: this.tabId,
+                        timestamp: Date.now()
+                    };
+                    
+                    this.channel.postMessage(syncMessage);
+                    console.log(`📤 Broadcasted ${message.type} to other tabs`);
+                    return true;
+                    
+                } catch (error) {
+                    console.error('❌ Failed to broadcast message:', error);
+                    return false;
+                }
+            }
+            
+            /**
+             * Register callback for specific sync message types
+             */
+            onSync(messageType, callback) {
+                if (!this.syncCallbacks.has(messageType)) {
+                    this.syncCallbacks.set(messageType, []);
+                }
+                this.syncCallbacks.get(messageType).push(callback);
+                
+                console.log(`🔔 Registered sync callback for: ${messageType}`);
+            }
+            
+            /**
+             * Unregister callback for specific sync message types
+             */
+            offSync(messageType, callback) {
+                if (this.syncCallbacks.has(messageType)) {
+                    const callbacks = this.syncCallbacks.get(messageType);
+                    const index = callbacks.indexOf(callback);
+                    if (index > -1) {
+                        callbacks.splice(index, 1);
+                        console.log(`🔕 Unregistered sync callback for: ${messageType}`);
+                    }
+                }
+            }
+            
+            /**
+             * Sync task creation across tabs
+             */
+            syncTaskCreate(task) {
+                return this.broadcast({
+                    type: 'TASK_CREATED',
+                    data: task
+                });
+            }
+            
+            /**
+             * Sync task update across tabs
+             */
+            syncTaskUpdate(task) {
+                return this.broadcast({
+                    type: 'TASK_UPDATED',
+                    data: task
+                });
+            }
+            
+            /**
+             * Sync task deletion across tabs
+             */
+            syncTaskDelete(taskId) {
+                return this.broadcast({
+                    type: 'TASK_DELETED',
+                    data: { id: taskId }
+                });
+            }
+            
+            /**
+             * Sync task completion across tabs
+             */
+            syncTaskComplete(taskId, completed) {
+                return this.broadcast({
+                    type: 'TASK_COMPLETED',
+                    data: { id: taskId, completed }
+                });
+            }
+            
+            /**
+             * Get sync status information
+             */
+            getSyncStatus() {
+                return {
+                    isSupported: this.isSupported,
+                    tabId: this.tabId,
+                    channelName: this.channelName,
+                    lastSyncTimestamp: this.lastSyncTimestamp,
+                    registeredCallbacks: Array.from(this.syncCallbacks.keys())
+                };
+            }
+            
+            /**
+             * Cleanup resources when tab is closing
+             */
+            destroy() {
+                if (this.channel) {
+                    // Announce tab disconnection
+                    this.broadcast({
+                        type: 'TAB_DISCONNECTED',
+                        tabId: this.tabId
+                    });
+                    
+                    this.channel.close();
+                    this.channel = null;
+                }
+                
+                this.syncCallbacks.clear();
+                console.log(`🔄 CrossTabSyncManager destroyed for tab: ${this.tabId}`);
+            }
+        }
+        
         class TaskManager {
             constructor() {
                 this.database = new TaskDatabase();
+                this.syncManager = new CrossTabSyncManager();
                 this.tasks = [];
                 this.isOnline = navigator.onLine;
                 this.isLoading = false;
@@ -984,6 +1244,9 @@
                     // Setup online/offline detection
                     this.setupNetworkDetection();
                     
+                    // Setup cross-tab synchronization
+                    this.setupCrossTabSync();
+                    
                     // Initial render
                     this.render();
                     
@@ -1005,6 +1268,8 @@
                     emptyState: document.getElementById('empty-state'),
                     statusDot: document.getElementById('status-dot'),
                     statusText: document.getElementById('status-text'),
+                    syncDot: document.getElementById('sync-dot'),
+                    syncText: document.getElementById('sync-text'),
                     
                     // Form inputs
                     titleInput: document.getElementById('task-title'),
@@ -1109,6 +1374,9 @@
                         this.clearForm();
                         this.render();
                         
+                        // Broadcast task creation to other tabs
+                        this.syncManager.syncTaskCreate(savedTask);
+                        
                         console.log('✅ Task created successfully');
                         
                     } catch (error) {
@@ -1150,6 +1418,9 @@
                     // Persist to database
                     await this.database.updateTask(taskId, { status: newStatus });
                     
+                    // Broadcast task completion to other tabs
+                    this.syncManager.syncTaskComplete(taskId, newStatus === 'completed');
+                    
                     console.log(`✅ Task ${newStatus}:`, task.title);
                     
                 } catch (error) {
@@ -1180,6 +1451,9 @@
                     
                     // Persist to database
                     await this.database.deleteTask(taskId);
+                    
+                    // Broadcast task deletion to other tabs
+                    this.syncManager.syncTaskDelete(taskId);
                     
                     console.log('✅ Task deleted:', deletedTask?.title);
                     
@@ -1901,6 +2175,195 @@
         };
         
         /**
+         * Setup cross-tab synchronization
+         */
+        TaskManager.prototype.setupCrossTabSync = function() {
+            // Register sync callbacks for different task operations
+            this.syncManager.onSync('TASK_CREATED', (data, tabId) => {
+                console.log(`🔄 Task created in tab ${tabId}:`, data);
+                this.handleRemoteTaskCreate(data);
+            });
+            
+            this.syncManager.onSync('TASK_UPDATED', (data, tabId) => {
+                console.log(`🔄 Task updated in tab ${tabId}:`, data);
+                this.handleRemoteTaskUpdate(data);
+            });
+            
+            this.syncManager.onSync('TASK_DELETED', (data, tabId) => {
+                console.log(`🔄 Task deleted in tab ${tabId}:`, data);
+                this.handleRemoteTaskDelete(data);
+            });
+            
+            this.syncManager.onSync('TASK_COMPLETED', (data, tabId) => {
+                console.log(`🔄 Task completed in tab ${tabId}:`, data);
+                this.handleRemoteTaskComplete(data);
+            });
+            
+            this.syncManager.onSync('TAB_CONNECTED', (data, tabId) => {
+                console.log(`🔗 Tab connected: ${tabId}`);
+                this.updateSyncStatus('multi-tab');
+                this.showSyncStatus('Tab connected', 'info');
+            });
+            
+            this.syncManager.onSync('TAB_DISCONNECTED', (data, tabId) => {
+                console.log(`🔌 Tab disconnected: ${tabId}`);
+                this.updateSyncStatus('ready');
+                this.showSyncStatus('Tab disconnected', 'info');
+            });
+            
+            // Set initial sync status
+            if (this.syncManager.isSupported) {
+                this.updateSyncStatus('ready');
+            } else {
+                this.updateSyncStatus('disabled', 'Not Supported');
+            }
+            
+            console.log('✅ Cross-tab sync callbacks registered');
+        };
+        
+        /**
+         * Handle task creation from another tab
+         */
+        TaskManager.prototype.handleRemoteTaskCreate = function(task) {
+            // Check if task already exists (conflict resolution)
+            const existingIndex = this.tasks.findIndex(t => t.id === task.id);
+            if (existingIndex === -1) {
+                // Add new task to local array
+                this.tasks.unshift(task);
+                this.render();
+                this.showSyncStatus('New task synced from another tab', 'success');
+            }
+        };
+        
+        /**
+         * Handle task update from another tab
+         */
+        TaskManager.prototype.handleRemoteTaskUpdate = function(task) {
+            const index = this.tasks.findIndex(t => t.id === task.id);
+            if (index !== -1) {
+                // Conflict resolution: use timestamp to determine latest version
+                const localTask = this.tasks[index];
+                if (!localTask.lastModified || task.lastModified > localTask.lastModified) {
+                    this.tasks[index] = task;
+                    this.render();
+                    this.showSyncStatus('Task updated from another tab', 'success');
+                }
+            } else {
+                // Task doesn't exist locally, add it
+                this.tasks.unshift(task);
+                this.render();
+                this.showSyncStatus('New task synced from another tab', 'success');
+            }
+        };
+        
+        /**
+         * Handle task deletion from another tab
+         */
+        TaskManager.prototype.handleRemoteTaskDelete = function(data) {
+            const index = this.tasks.findIndex(t => t.id === data.id);
+            if (index !== -1) {
+                this.tasks.splice(index, 1);
+                this.render();
+                this.showSyncStatus('Task deleted from another tab', 'success');
+            }
+        };
+        
+        /**
+         * Handle task completion from another tab
+         */
+        TaskManager.prototype.handleRemoteTaskComplete = function(data) {
+            const index = this.tasks.findIndex(t => t.id === data.id);
+            if (index !== -1) {
+                this.tasks[index].status = data.completed ? 'completed' : 'pending';
+                this.tasks[index].completedAt = data.completed ? new Date().toISOString() : null;
+                this.tasks[index].lastModified = Date.now();
+                this.render();
+                this.showSyncStatus(`Task ${data.completed ? 'completed' : 'reopened'} from another tab`, 'success');
+            }
+        };
+        
+        /**
+         * Show sync status message
+         */
+        TaskManager.prototype.showSyncStatus = function(message, type = 'info') {
+            // Create subtle notification for sync events
+            const notification = document.createElement('div');
+            notification.className = `sync-notification ${type}`;
+            notification.style.cssText = `
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                background: ${type === 'success' ? 'var(--color-success)' : 
+                           type === 'error' ? 'var(--color-danger)' : 'var(--color-primary)'};
+                color: white;
+                padding: var(--space-sm) var(--space-md);
+                border-radius: var(--radius-md);
+                box-shadow: var(--shadow-md);
+                z-index: 1000;
+                font-size: 0.875rem;
+                opacity: 0;
+                transform: translateY(20px);
+                transition: all 0.3s ease-out;
+                max-width: 250px;
+            `;
+            
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            // Animate in
+            requestAnimationFrame(() => {
+                notification.style.opacity = '1';
+                notification.style.transform = 'translateY(0)';
+            });
+            
+            // Auto remove after 3 seconds
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                notification.style.transform = 'translateY(20px)';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }, 3000);
+        };
+        
+        /**
+         * Update sync status indicator in header
+         */
+        TaskManager.prototype.updateSyncStatus = function(status, text) {
+            if (!this.elements.syncDot || !this.elements.syncText) return;
+            
+            // Remove all status classes
+            this.elements.syncDot.className = 'sync-dot';
+            
+            // Add appropriate status class
+            switch (status) {
+                case 'ready':
+                    this.elements.syncText.textContent = text || 'Sync Ready';
+                    break;
+                case 'syncing':
+                    this.elements.syncDot.classList.add('syncing');
+                    this.elements.syncText.textContent = text || 'Syncing...';
+                    break;
+                case 'multi-tab':
+                    this.elements.syncDot.classList.add('multi-tab');
+                    this.elements.syncText.textContent = text || 'Multi-Tab Active';
+                    break;
+                case 'error':
+                    this.elements.syncDot.classList.add('error');
+                    this.elements.syncText.textContent = text || 'Sync Error';
+                    break;
+                case 'disabled':
+                    this.elements.syncText.textContent = text || 'Sync Disabled';
+                    this.elements.syncDot.style.opacity = '0.5';
+                    break;
+                default:
+                    this.elements.syncText.textContent = text || 'Sync Ready';
+            }
+        };
+        
+        /**
          * Show error message to user
          */
         TaskManager.prototype.showError = function(message) {
@@ -2102,6 +2565,13 @@
                 // Initialize task manager (this should always work)
                 taskManager = new TaskManager();
                 await taskManager.init();
+                
+                // Setup cleanup for cross-tab sync when page unloads
+                window.addEventListener('beforeunload', () => {
+                    if (taskManager && taskManager.syncManager) {
+                        taskManager.syncManager.destroy();
+                    }
+                });
                 
                 // Setup PWA features (only if possible)
                 try {
