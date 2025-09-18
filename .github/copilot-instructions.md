@@ -1,8 +1,8 @@
-# Copilot Instructions for Sky Project
+# Copilot Instructions for Sky Project - Engineering Edition
 
 ## 🏗️ Architecture Overview
 
-This project contains **two distinct single-file applications** with zero external dependencies:
+This project contains **two distinct single-file applications** with zero external dependencies, designed with engineering-first principles for production-grade vanilla HTML/CSS/JavaScript development.
 
 ### 1. **Autonomous Marketplace** (`autonomous-marketplace.html`)
 - **AI-powered app generator** that creates web applications through natural language
@@ -17,24 +17,38 @@ This project contains **two distinct single-file applications** with zero extern
 - **PWA capabilities**: Installable app with embedded manifest
 - **Optimistic UI**: Instant updates with database rollback on failure
 
-## 🎯 Key Patterns & Conventions
+## 🎯 Engineering Goals
 
-### **Single-File Architecture**
-- **Everything embedded**: HTML, CSS, JavaScript, PWA manifest, Service Workers
-- **No build tools**: Direct browser execution, zero external dependencies
-- **Self-contained**: Each HTML file is a complete, deployable application
+Favor standard platform features, progressive enhancement, and deterministic behaviors that work in constrained environments and degrade gracefully when APIs are unavailable. Minimize surface area by keeping apps self-contained while using manifests and service workers to bundle install-time metadata and caching strategies for reliability and performance.
 
-### **Database Patterns**
+## 🏛️ Architecture Principles
+
+- **Single-file packaging**: embed HTML, CSS, JS, and PWA manifest to ship self-contained apps that the browser can parse and execute directly using standard loading rules for documents and scripts.
+- **Progressive enhancement**: render meaningful baseline HTML, layer interactivity and offline capabilities via feature detection for service workers and related APIs to avoid breaking baseline functionality.
+- **Separation of concerns in vanilla JS**: isolate DOM rendering and state transitions in small units, and keep cross-cutting concerns (security validation, analytics, and sandbox execution) independent to reduce coupling.
+
+## 💾 Data and State
+
+### **IndexedDB as the Durable Store**
+All reads and writes must run within transactions, enabling atomic commit/rollback and consistency across object stores when scoped correctly.
+
 ```javascript
-// IndexedDB with transaction safety (Task Manager)
+// Transaction usage: open transactions from IDBDatabase, operate through IDBObjectStore
 class TaskDatabase {
     async createTask(data) {
         const task = this.validateTaskData(data);
-        const transaction = this.db.transaction(['tasks'], 'readwrite');
-        // Always use transactions for data integrity
+        const tx = this.db.transaction(['tasks'], 'readwrite');
+        const store = tx.objectStore('tasks');
+        await store.put(task);
+        await tx.done; // or await completion via event/callback if using callbacks
     }
 }
+```
 
+### **In-Memory Caches**
+Prefer immutable snapshots or Map-based stores for live data with explicit synchronization points to reduce incidental writes outside transactional boundaries.
+
+```javascript
 // In-memory Map storage (Autonomous Marketplace)
 const AppMarketplace = {
     apps: new Map(),              // Live application instances
@@ -43,7 +57,74 @@ const AppMarketplace = {
 };
 ```
 
-### **Security-First Development**
+## 🖥️ DOM and Rendering
+
+### **Batch DOM Updates with DocumentFragment**
+Construct and populate off-DOM to avoid layout thrashing, then append once to minimize reflows and paint work.
+
+```javascript
+const frag = document.createDocumentFragment();
+items.forEach((item) => {
+  const el = renderItem(item);
+  frag.appendChild(el);
+});
+listEl.appendChild(frag);
+```
+
+### **Use requestAnimationFrame for Visual Updates**
+Schedule UI updates on the browser's animation tick for smooth rendering and throttling in background contexts.
+
+```javascript
+let last = 0;
+function tick(ts) {
+  const dt = ts - last;
+  last = ts;
+  update(dt);
+  render();
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+```
+
+### **Event Delegation for Dynamic UIs**
+Attach a single listener to a stable ancestor and dispatch by inspecting event targets, leveraging bubbling for efficiency and resilience to dynamic content.
+
+```javascript
+document.addEventListener('click', (e) => {
+  const button = e.target.closest('[data-action]');
+  if (!button) return;
+  handleAction(button.dataset.action);
+});
+```
+
+## 🧩 Web Components
+
+### **Custom Elements with Shadow DOM**
+Encapsulate markup, styles, and behavior using attachShadow and slots to prevent style leakage and simplify reuse.
+
+```javascript
+class AppShell extends HTMLElement {
+  constructor() {
+    super();
+    const root = this.attachShadow({ mode: 'open' });
+    root.innerHTML = `
+      <style>:host { display: block; }</style>
+      <header><slot name="header"></slot></header>
+      <main><slot></slot></main>
+    `;
+  }
+}
+customElements.define('app-shell', AppShell);
+```
+
+### **Templates and Slots**
+Compose flexible layouts while maintaining encapsulation; place light DOM content through slot where appropriate.
+
+## 🔒 Security-First Patterns
+
+### **Never Use eval or Function**
+Prefer sandboxing, structured messaging, and controlled surfaces to avoid DOM-based XSS sinks.
+
 ```javascript
 // XSS prevention - ALWAYS sanitize user input
 sanitizeHTML(input) {
@@ -51,12 +132,49 @@ sanitizeHTML(input) {
     div.textContent = input;
     return div.innerHTML;
 }
+```
 
-// Safe code execution (Autonomous Marketplace)
-executeInSandbox(code) {
-    // Never use eval() directly - use iframe sandbox
+### **Sandbox Execution**
+Run untrusted content in sandboxed iframes and avoid allow-same-origin with allow-scripts when isolation is required to prevent sandbox escape.
+
+```html
+<iframe sandbox="allow-scripts" srcdoc="<!doctype html><script>/* isolated */</script>"></iframe>
+```
+
+### **Sanitize and Encode**
+Treat all input as untrusted, encode on output, and isolate unsafe rendering paths; prefer textContent over innerHTML for plain text insertion.
+
+## 📱 PWA Packaging and Lifecycle
+
+### **Web App Manifest**
+Include a manifest with name, icons, start_url, scope, and display to enable installation and standardized metadata for app-like behavior.
+
+```html
+<link rel="manifest" href="/app.webmanifest">
+```
+
+### **Service Worker Lifecycle**
+Register a service worker for offline reliability and programmable caching; treat this as progressive enhancement when unsupported.
+
+```javascript
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js');
 }
 ```
+
+### **Programmable Caching**
+Use Cache API strategies to control fetch handling, background updating, and fallbacks to optimize perceived performance and resilience.
+
+## ⚡ Performance and Memory
+
+### **Minimize Layout Thrash**
+Construct lists with DocumentFragment and append once to reduce reflow/paint cycles in large renders.
+
+### **Animation Cadence**
+Perform per-frame work in requestAnimationFrame and compute deltas from the timestamp for refresh-rate independence.
+
+### **Off-Main-Thread Work**
+Move heavy logic to Web Workers when needed to keep the UI responsive and isolate computations from the rendering thread.
 
 ### **Optimistic UI Updates**
 ```javascript
@@ -78,14 +196,39 @@ async createTask() {
 }
 ```
 
-## 🔧 Development Workflows
+## ✅ Acceptance Criteria Patterns
 
-### **Testing Strategy**
-- **No external frameworks**: Embedded testing with URL parameters (`?test=true`)
-- **Browser-native**: Test real IndexedDB, Service Workers, PWA features
-- **Cross-browser**: Playwright scripts for automated testing across browsers
+### **Data Integrity**
+All durable writes run within IndexedDB transactions with explicit abort on validation failure and commit on success.
 
-### **Debugging**
+### **Rendering Safety**
+No direct HTML injection from untrusted sources; use text nodes or sanitized templates and avoid unsafe sinks known to enable DOM XSS.
+
+### **Isolation**
+All dynamically executed user or AI-generated code runs in a sandboxed iframe or worker boundary with capability minimization.
+
+## 🌐 Browser Compatibility
+
+### **Feature Detection**
+Check for Service Worker and IndexedDB presence before activation; default to baseline behaviors when absent.
+
+### **Manifest Support**
+Link the manifest in documents that should be installable and validate fields via DevTools to ensure correct parsing and install behavior.
+
+### **Shadow DOM Usage**
+Rely on standard Shadow DOM APIs and slots for encapsulation rather than global styles to minimize cross-component breakage.
+
+## 🧪 Testing and Debugging Hooks
+
+### **Service Worker Verification**
+Use DevTools Application panels to inspect manifest and service worker state, ensuring correct registration and caching semantics before release.
+
+### **Transactional Testing**
+Validate error paths by forcing IndexedDB aborts to confirm optimistic UI rollbacks and consistency under failure.
+
+### **Shadow DOM Validation**
+Verify slotting, scoping, and host styling behaviors through ShadowRoot inspection to ensure component encapsulation is preserved.
+
 ```javascript
 // Enable debug mode via URL parameters
 const urlParams = new URLSearchParams(window.location.search);
@@ -94,102 +237,85 @@ if (urlParams.has('debug')) {
 }
 ```
 
-### **Version Control**
-- **Commit single files**: Each HTML file is a complete feature
-- **Document major function points**: Use detailed commit messages for architecture changes
-- **Branch strategy**: Main branch contains production-ready single-file apps
-
-## 🎨 UI/UX Patterns
-
-### **CSS Architecture**
-```css
-/* Custom properties for theming */
-:root {
-    --color-primary: #2563eb;
-    --space-md: 1rem;
-    --transition-fast: 150ms ease-in-out;
-}
-
-/* Mobile-first responsive design */
-.app-container {
-    display: grid;
-    grid-template-areas: "header" "main" "footer";
-}
-
-@media (min-width: 768px) {
-    .app-container {
-        grid-template-areas: "header header" "sidebar main" "footer footer";
-    }
-}
-```
-
-### **Component-Like Structure**
-```javascript
-// Vanilla JS component pattern without frameworks
-class Component {
-    constructor(element) {
-        this.element = element;
-        this.state = {};
-    }
-    
-    setState(newState) {
-        this.state = { ...this.state, ...newState };
-        this.render();
-    }
-    
-    render() {
-        this.element.innerHTML = this.template();
-    }
-}
-```
-
 ## 📡 AI Integration Patterns
 
-### **Google Gemini Integration** (Autonomous Marketplace)
+### **Client-Side AI API Integration**
+Implement secure API communication with flexible service management:
+
 ```javascript
-static async processWithGemini(userRequest) {
-    // Structured prompts for better AI responses
-    const systemPrompt = "You are a web application generator...";
-    
-    // API key management
-    const apiKey = localStorage.getItem('gemini-api-key');
-    
-    // Response parsing with fallbacks
-    const jsonMatch = response.match(/\{[\s\S]*\}/);
-    return jsonMatch ? JSON.parse(jsonMatch[0]) : fallbackResponse;
+class AIServiceManager {
+    constructor(apiKey, provider = 'openai') {
+        this.apiKey = apiKey;
+        this.provider = provider;
+        this.baseURL = this.getProviderURL(provider);
+    }
+   
+    async generateApp(prompt) {
+        try {
+            const response = await fetch(this.baseURL, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${this.apiKey}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    messages: [{ role: 'user', content: prompt }],
+                    model: this.getProviderModel()
+                })
+            });
+           
+            return await response.json();
+        } catch (error) {
+            console.error('AI service error:', error);
+            return this.getFallbackResponse();
+        }
+    }
 }
 ```
 
-### **API Tracking & Analytics**
+### **Code Processing and Sandboxing**
 ```javascript
-// Track all AI interactions for optimization
-class AIApiTracker {
-    startTracking(requestId, userRequest) {
-        // Log request metadata, tokens, performance
+class CodeProcessor {
+    processAIResponse(response) {
+        const codeBlocks = this.extractCodeBlocks(response.content);
+        return {
+            html: codeBlocks.html || '',
+            css: codeBlocks.css || '',
+            javascript: codeBlocks.javascript || ''
+        };
     }
-    
-    completeTracking(requestId, response) {
-        // Analyze deviation, quality, suggest improvements
+   
+    sandboxCode(jsCode) {
+        // Implement code sandboxing for security
+        return `(function() { ${jsCode} })();`;
     }
 }
 ```
 
-## 🚨 Critical Considerations
+## 🚨 Security Checklists
 
-### **Browser Compatibility**
-- **IndexedDB**: Check availability before use
-- **Service Workers**: Progressive enhancement pattern
-- **CSS Grid**: Fallback layouts for older browsers
+### **Inputs**
+- Encode/sanitize at output boundaries
+- Never concatenate untrusted content into HTML
+- Avoid dangerous sinks including eval, setInnerHTML on untrusted input, and Function
 
-### **Performance**
-- **Virtual scrolling**: Handle large datasets (1000+ items)
-- **Document fragments**: Batch DOM updates
-- **Memory management**: Clean up event listeners and observers
+### **Isolation**
+- If running generated code, prefer sandboxed iframe or worker with minimal allowlists
+- Do not pair allow-scripts with allow-same-origin for same-origin content
 
-### **Security**
-- **Never use eval()**: Use iframe sandboxes for code execution
-- **Sanitize all inputs**: HTML escaping, input validation
-- **CSP headers**: Content Security Policy for production deployment
+### **Policies**
+- Apply CSP sandbox directive in controlled contexts to restrict script, navigation, and plugin capabilities at the response level
+
+## 🛡️ Operational Guardrails
+
+### **Failure-First Flow**
+Design UI to optimistically update, then confirm persistence, and roll back on transaction abort or service worker failures to keep state consistent.
+
+### **Caching Strategy Reviews**
+Validate staleness windows and update paths in Cache API logic to ensure correct offline and online behaviors under intermittent connectivity.
+
+### **Component Encapsulation**
+Keep styles and DOM isolated via Shadow DOM to prevent regressions from global CSS or script collisions during incremental feature additions.
 
 ## 📁 File Organization
 
@@ -210,3 +336,6 @@ sky/
 3. **Implement security-first** - sanitize inputs, validate data
 4. **Use optimistic UI** - immediate feedback with rollback
 5. **Document major function points** - explain complex architecture decisions
+6. **Apply progressive enhancement** - ensure baseline functionality without advanced APIs
+7. **Use feature detection** - check for API availability before use
+8. **Implement proper error boundaries** - graceful degradation and recovery
