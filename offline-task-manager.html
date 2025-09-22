@@ -2367,12 +2367,30 @@
                             this.tasks[index] = savedTask;
                         }
                         
+                        // 4. Cache task data for offline access
+                        await safeCacheTaskData(savedTask);
+                        
+                        // 5. Queue for background sync (online or offline)
+                        await this.queueForBackgroundSync({
+                            type: 'CREATE_TASK',
+                            data: { taskData: savedTask },
+                            timestamp: Date.now()
+                        });
+                        
+                        // 6. Update category task count if task has category
+                        if (savedTask.categoryId) {
+                            await this.categoryManager.updateCategoryTaskCount(savedTask.categoryId);
+                        }
+                        
                         // Clear form and re-render
                         this.clearForm();
                         this.render();
                         
                         // Broadcast task creation to other tabs
-                        this.syncManager.syncTaskCreate(savedTask);
+                        this.syncManager.broadcast({
+                            type: 'TASK_CREATED',
+                            data: savedTask
+                        });
                         
                         console.log('✅ Task created successfully');
                         
@@ -2437,22 +2455,46 @@
                 }
                 
                 try {
-                    // Optimistic update
+                    // Store task for potential rollback
                     const taskIndex = this.tasks.findIndex(t => t.id === taskId);
                     const deletedTask = this.tasks[taskIndex];
                     
-                    if (taskIndex !== -1) {
-                        this.tasks.splice(taskIndex, 1);
+                    if (taskIndex === -1) return;
+                    
+                    // Optimistic update
+                    this.tasks.splice(taskIndex, 1);
+                    this.render();
+                    
+                    try {
+                        // Persist to database
+                        await this.database.deleteTask(taskId);
+                        
+                        // Update category task count if task had category
+                        if (deletedTask.categoryId) {
+                            await this.categoryManager.updateCategoryTaskCount(deletedTask.categoryId);
+                        }
+                        
+                        // Queue for background sync
+                        await this.queueForBackgroundSync({
+                            type: 'DELETE_TASK',
+                            data: { taskId: taskId },
+                            timestamp: Date.now()
+                        });
+                        
+                        // Broadcast to other tabs
+                        this.syncManager.broadcast({
+                            type: 'TASK_DELETED',
+                            data: { id: taskId }
+                        });
+                        
+                        console.log('✅ Task deleted:', deletedTask?.title);
+                        
+                    } catch (error) {
+                        // Rollback on failure
+                        this.tasks.splice(taskIndex, 0, deletedTask);
                         this.render();
+                        throw error;
                     }
-                    
-                    // Persist to database
-                    await this.database.deleteTask(taskId);
-                    
-                    // Broadcast task deletion to other tabs
-                    this.syncManager.syncTaskDelete(taskId);
-                    
-                    console.log('✅ Task deleted:', deletedTask?.title);
                     
                 } catch (error) {
                     console.error('❌ Failed to delete task:', error);
@@ -2949,88 +2991,7 @@
                 }
             };
             
-            /**
-             * Enhanced task creation with Service Worker integration
-             */
-            TaskManager.prototype.handleCreateTask = async function() {
-                if (this.isLoading) return;
-                
-                try {
-                    // Get form data
-                    const formData = this.getFormData();
-                    if (!formData.title.trim()) {
-                        this.showError('Please enter a task title');
-                        return;
-                    }
-                    
-                    this.setLoading(true);
-                    
-                    // Create optimistic task for immediate UI feedback
-                    const optimisticTask = {
-                        ...formData,
-                        id: 'temp-' + Date.now(),
-                        status: 'pending',
-                        createdAt: new Date().toISOString(),
-                        modifiedAt: new Date().toISOString(),
-                        completedAt: null,
-                        isOptimistic: true // Flag for UI styling
-                    };
-                    
-                    // 1. Immediately add to UI (optimistic update)
-                    this.tasks.unshift(optimisticTask);
-                    this.render();
-                    
-                    try {
-                        // 2. Persist to database
-                        const savedTask = await this.database.createTask(formData);
-                        
-                        // 3. Replace optimistic task with real data
-                        const index = this.tasks.findIndex(t => t.id === optimisticTask.id);
-                        if (index !== -1) {
-                            this.tasks[index] = savedTask;
-                        }
-                        
-                        // 4. Cache task data for offline access
-                        await safeCacheTaskData(savedTask);
-                        
-                        // 5. Queue for background sync (online or offline)
-                        await this.queueForBackgroundSync({
-                            type: 'CREATE_TASK',
-                            data: { taskData: savedTask },
-                            timestamp: Date.now()
-                        });
-                        
-                        // 6. Update category task count if task has category
-                        if (savedTask.categoryId) {
-                            await this.categoryManager.updateCategoryTaskCount(savedTask.categoryId);
-                        }
-                        
-                        // Broadcast to other tabs
-                        this.syncManager.broadcast({
-                            type: 'TASK_CREATED',
-                            data: savedTask
-                        });
-                        
-                        // Clear form and re-render
-                        this.clearForm();
-                        this.render();
-                        
-                        console.log('✅ Task created successfully');
-                        
-                    } catch (error) {
-                        // 4. Rollback optimistic update on failure
-                        this.tasks = this.tasks.filter(t => t.id !== optimisticTask.id);
-                        this.render();
-                        throw error;
-                    }
-                    
-                } catch (error) {
-                    console.error('❌ Failed to create task:', error);
-                    this.showError('Failed to create task: ' + error.message);
-                } finally {
-                    this.setLoading(false);
-                }
-            };
+
             
             /**
              * Enhanced task toggle with Service Worker integration
@@ -3097,63 +3058,7 @@
                 }
             };
             
-            /**
-             * Enhanced task deletion with Service Worker integration
-             */
-            TaskManager.prototype.deleteTask = async function(taskId) {
-                if (!confirm('Are you sure you want to delete this task?')) {
-                    return;
-                }
-                
-                try {
-                    // Store task for potential rollback
-                    const taskIndex = this.tasks.findIndex(t => t.id === taskId);
-                    const deletedTask = this.tasks[taskIndex];
-                    
-                    if (taskIndex === -1) return;
-                    
-                    // Optimistic update
-                    this.tasks.splice(taskIndex, 1);
-                    this.render();
-                    
-                    try {
-                        // Persist to database
-                        await this.database.deleteTask(taskId);
-                        
-                        // Update category task count if task had category
-                        if (deletedTask.categoryId) {
-                            await this.categoryManager.updateCategoryTaskCount(deletedTask.categoryId);
-                        }
-                        
-                        // Queue for background sync
-                        await this.queueForBackgroundSync({
-                            type: 'DELETE_TASK',
-                            data: { taskId: taskId },
-                            timestamp: Date.now()
-                        });
-                        
-                        // Broadcast to other tabs
-                        this.syncManager.broadcast({
-                            type: 'TASK_DELETED',
-                            data: { id: taskId }
-                        });
-                        
-                        console.log('✅ Task deleted:', deletedTask?.title);
-                        
-                    } catch (error) {
-                        // Rollback on failure
-                        this.tasks.splice(taskIndex, 0, deletedTask);
-                        this.render();
-                        throw error;
-                    }
-                    
-                } catch (error) {
-                    console.error('❌ Failed to delete task:', error);
-                    // Reload tasks to restore correct state
-                    await this.loadTasks();
-                    this.showError('Failed to delete task');
-                }
-            };
+
             
             /**
              * Enhanced task edit saving with Service Worker integration
@@ -4572,16 +4477,19 @@
                 // Simulate network delay
                 await new Promise(resolve => setTimeout(resolve, 100 + Math.random() * 200));
                 
-                // Simulate various responses for testing
+                // Simulate various responses for testing (reduced error rates for better UX)
                 const random = Math.random();
-                if (random < 0.1) {
-                    // 10% chance of server error
+                if (random < 0.02) {
+                    // 2% chance of server error (reduced from 10%)
+                    console.warn('🔴 Simulated SERVER_ERROR for testing');
                     return { success: false, error: 'SERVER_ERROR' };
-                } else if (random < 0.15) {
-                    // 5% chance of conflict
+                } else if (random < 0.03) {
+                    // 1% chance of conflict (reduced from 5%)
+                    console.warn('🟡 Simulated CONFLICT for testing');
                     return { success: false, error: 'CONFLICT' };
                 } else {
-                    // Success case
+                    // Success case (97% success rate)
+                    console.log('✅ Simulated API success');
                     return { 
                         success: true, 
                         data: { 
@@ -4735,42 +4643,120 @@
                     };
                 });
             }
+
+            /**
+             * Check if database is ready
+             */
+            ensureDatabase() {
+                if (!this.db) {
+                    throw new Error('SyncQueue database not initialized. Call init() first.');
+                }
+                if (this.db.readyState && this.db.readyState === 'closed') {
+                    throw new Error('SyncQueue database connection is closed.');
+                }
+            }
+
+            /**
+             * Safe database operation wrapper
+             */
+            async safeDbOperation(operation) {
+                try {
+                    this.ensureDatabase();
+                    return await operation();
+                } catch (error) {
+                    console.error('❌ Database operation failed:', error);
+                    // If database is closed, try to reinitialize
+                    if (error.message.includes('closed')) {
+                        console.log('🔄 Attempting to reinitialize database...');
+                        try {
+                            await this.init();
+                            return await operation();
+                        } catch (reinitError) {
+                            console.error('❌ Failed to reinitialize database:', reinitError);
+                            throw reinitError;
+                        }
+                    }
+                    throw error;
+                }
+            }
             
             /**
              * Add operation to queue
              */
             async add(operation) {
-                const tx = this.db.transaction(['operations'], 'readwrite');
-                const store = tx.objectStore('operations');
-                await store.put(operation);
+                try {
+                    this.ensureDatabase();
+                    const tx = this.db.transaction(['operations'], 'readwrite');
+                    const store = tx.objectStore('operations');
+                    
+                    await new Promise((resolve, reject) => {
+                        const request = store.put(operation);
+                        request.onsuccess = () => resolve(request.result);
+                        request.onerror = () => reject(request.error);
+                    });
+                } catch (error) {
+                    console.error('❌ Error adding operation to queue:', error);
+                    throw error;
+                }
             }
             
             /**
              * Get all pending operations
              */
             async getPending() {
-                const tx = this.db.transaction(['operations'], 'readonly');
-                const store = tx.objectStore('operations');
-                const index = store.index('by-status');
-                
-                const pending = await index.getAll('pending');
-                const retrying = await index.getAll('retrying');
-                
-                return [...pending, ...retrying].sort((a, b) => a.timestamp - b.timestamp);
+                try {
+                    this.ensureDatabase();
+                    const tx = this.db.transaction(['operations'], 'readonly');
+                    const store = tx.objectStore('operations');
+                    const index = store.index('by-status');
+                    
+                    const pending = await new Promise((resolve, reject) => {
+                        const request = index.getAll('pending');
+                        request.onsuccess = () => resolve(request.result || []);
+                        request.onerror = () => reject(request.error);
+                    });
+                    
+                    const retrying = await new Promise((resolve, reject) => {
+                        const request = index.getAll('retrying');
+                        request.onsuccess = () => resolve(request.result || []);
+                        request.onerror = () => reject(request.error);
+                    });
+                    
+                    return [...pending, ...retrying].sort((a, b) => a.timestamp - b.timestamp);
+                } catch (error) {
+                    console.error('❌ Error getting pending operations:', error);
+                    return [];
+                }
             }
             
             /**
              * Mark operation as completed
              */
             async markCompleted(operationId) {
-                const tx = this.db.transaction(['operations'], 'readwrite');
-                const store = tx.objectStore('operations');
-                
-                const operation = await store.get(operationId);
-                if (operation) {
-                    operation.status = 'completed';
-                    operation.completedAt = Date.now();
-                    await store.put(operation);
+                try {
+                    this.ensureDatabase();
+                    const tx = this.db.transaction(['operations'], 'readwrite');
+                    const store = tx.objectStore('operations');
+                    
+                    const operation = await new Promise((resolve, reject) => {
+                        const request = store.get(operationId);
+                        request.onsuccess = () => resolve(request.result);
+                        request.onerror = () => reject(request.error);
+                    });
+                    
+                    if (operation) {
+                        operation.status = 'completed';
+                        operation.completedAt = Date.now();
+                        
+                        await new Promise((resolve, reject) => {
+                            const request = store.put(operation);
+                            request.onsuccess = () => resolve(request.result);
+                            request.onerror = () => reject(request.error);
+                        });
+                    }
+                } catch (error) {
+                    console.error('❌ Error marking operation as completed:', error);
+                    throw error;
                 }
             }
             
@@ -4778,15 +4764,31 @@
              * Mark operation as failed
              */
             async markFailed(operationId, errorMessage) {
-                const tx = this.db.transaction(['operations'], 'readwrite');
-                const store = tx.objectStore('operations');
-                
-                const operation = await store.get(operationId);
-                if (operation) {
-                    operation.status = 'failed';
-                    operation.error = errorMessage;
-                    operation.failedAt = Date.now();
-                    await store.put(operation);
+                try {
+                    this.ensureDatabase();
+                    const tx = this.db.transaction(['operations'], 'readwrite');
+                    const store = tx.objectStore('operations');
+                    
+                    const operation = await new Promise((resolve, reject) => {
+                        const request = store.get(operationId);
+                        request.onsuccess = () => resolve(request.result);
+                        request.onerror = () => reject(request.error);
+                    });
+                    
+                    if (operation) {
+                        operation.status = 'failed';
+                        operation.error = errorMessage;
+                        operation.failedAt = Date.now();
+                        
+                        await new Promise((resolve, reject) => {
+                            const request = store.put(operation);
+                            request.onsuccess = () => resolve(request.result);
+                            request.onerror = () => reject(request.error);
+                        });
+                    }
+                } catch (error) {
+                    console.error('❌ Error marking operation as failed:', error);
+                    throw error;
                 }
             }
             
@@ -4794,13 +4796,29 @@
              * Update operation status
              */
             async updateStatus(operationId, status) {
-                const tx = this.db.transaction(['operations'], 'readwrite');
-                const store = tx.objectStore('operations');
-                
-                const operation = await store.get(operationId);
-                if (operation) {
-                    operation.status = status;
-                    await store.put(operation);
+                try {
+                    this.ensureDatabase();
+                    const tx = this.db.transaction(['operations'], 'readwrite');
+                    const store = tx.objectStore('operations');
+                    
+                    const operation = await new Promise((resolve, reject) => {
+                        const request = store.get(operationId);
+                        request.onsuccess = () => resolve(request.result);
+                        request.onerror = () => reject(request.error);
+                    });
+                    
+                    if (operation) {
+                        operation.status = status;
+                        
+                        await new Promise((resolve, reject) => {
+                            const request = store.put(operation);
+                            request.onsuccess = () => resolve(request.result);
+                            request.onerror = () => reject(request.error);
+                        });
+                    }
+                } catch (error) {
+                    console.error('❌ Error updating operation status:', error);
+                    throw error;
                 }
             }
         }
