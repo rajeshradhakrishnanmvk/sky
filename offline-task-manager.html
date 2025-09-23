@@ -896,8 +896,8 @@
                                 <button type="submit" class="btn btn-primary">
                                     Add Task
                                 </button>
-                                <button type="button" class="btn btn-secondary" onclick="taskManager.openCategoryManager()" style="margin-left: auto;">
-                                    📂 Manage Categories
+                                <button type="button" id="manage-categories-btn" class="btn btn-secondary" onclick="taskManager.openCategoryManager()" style="margin-left: auto;" disabled title="Initializing...">
+                                    ⏳ Initializing...
                                 </button>
                             </div>
                         </form>
@@ -1071,9 +1071,26 @@
         class TaskDatabase {
             constructor() {
                 this.dbName = 'TaskManagerDB';
-                this.version = 1;
+                this.version = 1; // TEMPORARILY REVERTED: Back to v1 for safety
                 this.db = null;
                 this.isInitialized = false;
+                this.backupDbName = 'TaskManagerDB_Backup'; // Backup database
+            }
+            
+            /**
+             * 🔧 Ensure database is ready for operations
+             */
+            async ensureDatabase() {
+                if (!this.db || !this.isInitialized) {
+                    console.warn('⚠️ Database not ready, reinitializing...');
+                    await this.init();
+                }
+                
+                if (!this.db) {
+                    throw new Error('Database initialization failed - IndexedDB may not be available');
+                }
+                
+                return this.db;
             }
             
             /**
@@ -1103,7 +1120,9 @@
                     // This runs only on first install or version upgrade
                     request.onupgradeneeded = (event) => {
                         const db = event.target.result;
-                        console.log('🔧 Creating database schema...');
+                        const oldVersion = event.oldVersion;
+                        const transaction = event.target.transaction;
+                        console.log(`🔧 Database upgrade: v${oldVersion} → v${this.version}`);
                         
                         // Create tasks object store
                         if (!db.objectStoreNames.contains('tasks')) {
@@ -1116,7 +1135,31 @@
                             taskStore.createIndex('by-created', 'createdAt', { unique: false });
                             taskStore.createIndex('by-modified', 'modifiedAt', { unique: false });
                             
-                            console.log('📋 Tasks store created with indexes');
+                            // NEW: Dependency-related indexes for v2
+                            taskStore.createIndex('by-dependencies', 'dependencies', { unique: false, multiEntry: true });
+                            taskStore.createIndex('by-blocked-status', 'isBlocked', { unique: false });
+                            
+                            console.log('📋 Tasks store created with indexes (including dependencies)');
+                        } else if (oldVersion < 2) {
+                            // Migration for existing tasks store to v2
+                            const taskStore = transaction.objectStore('tasks');
+                            
+                            // Add new dependency indexes
+                            try {
+                                if (!taskStore.indexNames.contains('by-dependencies')) {
+                                    taskStore.createIndex('by-dependencies', 'dependencies', { unique: false, multiEntry: true });
+                                }
+                                if (!taskStore.indexNames.contains('by-blocked-status')) {
+                                    taskStore.createIndex('by-blocked-status', 'isBlocked', { unique: false });
+                                }
+                                
+                                console.log('📋 Tasks store migrated to v2 with dependency indexes');
+                                
+                                // Migrate existing tasks to include dependency fields
+                                this.migrateTasksToV2(taskStore, transaction);
+                            } catch (indexError) {
+                                console.warn('⚠️ Index creation failed:', indexError);
+                            }
                         }
                         
                         // Create categories store (for future use)
@@ -1136,6 +1179,203 @@
             }
             
             /**
+             * 🔄 DATABASE MIGRATION: Migrate existing tasks to v2 schema
+             * 
+             * Adds dependency fields to existing tasks without losing data
+             */
+            migrateTasksToV2(taskStore, transaction) {
+                console.log('🔄 Migrating existing tasks to v2 schema...');
+                
+                try {
+                    let migrationCount = 0;
+                    const cursorRequest = taskStore.openCursor();
+                    
+                    cursorRequest.onsuccess = (event) => {
+                        const cursor = event.target.result;
+                        if (cursor) {
+                            const task = cursor.value;
+                            let needsUpdate = false;
+                            
+                            // Add new dependency fields if they don't exist
+                            if (!task.hasOwnProperty('dependencies')) {
+                                task.dependencies = [];
+                                needsUpdate = true;
+                            }
+                            if (!task.hasOwnProperty('dependencyType')) {
+                                task.dependencyType = 'blocking';
+                                needsUpdate = true;
+                            }
+                            if (!task.hasOwnProperty('isBlocked')) {
+                                task.isBlocked = false;
+                                needsUpdate = true;
+                            }
+                            
+                            // Update the task only if needed
+                            if (needsUpdate) {
+                                try {
+                                    cursor.update(task);
+                                    migrationCount++;
+                                } catch (updateError) {
+                                    console.error('❌ Failed to update task during migration:', task.id, updateError);
+                                }
+                            }
+                            
+                            cursor.continue();
+                        } else {
+                            console.log(`✅ Task migration to v2 completed. Updated ${migrationCount} tasks.`);
+                        }
+                    };
+                    
+                    cursorRequest.onerror = () => {
+                        console.error('❌ Task migration cursor failed:', cursorRequest.error);
+                    };
+                    
+                } catch (error) {
+                    console.error('❌ Migration error:', error);
+                }
+            }
+
+            /**
+             * 🔧 SAFE DEPENDENCY UPGRADE: Upgrade database to v2 with user consent
+             */
+            async upgradeToDependencySupport() {
+                try {
+                    console.log('🔄 Starting safe upgrade to dependency support...');
+                    
+                    // First, check current state
+                    const currentState = await this.checkDatabaseState();
+                    console.log('📊 Current database state:', currentState);
+                    
+                    if (currentState.version >= 2) {
+                        console.log('✅ Database already supports dependencies');
+                        return true;
+                    }
+                    
+                    // Close current connection
+                    if (this.db) {
+                        this.db.close();
+                    }
+                    
+                    // Upgrade to v2
+                    this.version = 2;
+                    this.isInitialized = false;
+                    
+                    // Reinitialize with v2 schema
+                    await this.init();
+                    
+                    // Verify upgrade
+                    const newState = await this.checkDatabaseState();
+                    console.log('📊 New database state:', newState);
+                    
+                    if (newState.version === 2) {
+                        console.log('✅ Dependency support upgrade completed successfully');
+                        return true;
+                    } else {
+                        console.error('❌ Upgrade verification failed');
+                        return false;
+                    }
+                    
+                } catch (error) {
+                    console.error('❌ Dependency upgrade failed:', error);
+                    
+                    // Rollback on failure
+                    try {
+                        this.version = 1;
+                        this.isInitialized = false;
+                        await this.init();
+                        console.log('🔄 Rolled back to v1 after upgrade failure');
+                    } catch (rollbackError) {
+                        console.error('❌ Rollback also failed:', rollbackError);
+                    }
+                    
+                    return false;
+                }
+            }
+
+            /**
+             * 🔧 DATABASE RECOVERY: Check database state and provide recovery options
+             */
+            async checkDatabaseState() {
+                try {
+                    if (!this.db) {
+                        console.log('❌ Database not initialized');
+                        return { tasks: 0, categories: 0, version: 'unknown' };
+                    }
+                    
+                    // Check database version
+                    const version = this.db.version;
+                    console.log(`📊 Database version: ${version}`);
+                    
+                    // Count tasks
+                    const taskTransaction = this.db.transaction(['tasks'], 'readonly');
+                    const taskStore = taskTransaction.objectStore('tasks');
+                    const taskCount = await new Promise((resolve, reject) => {
+                        const request = taskStore.count();
+                        request.onsuccess = () => resolve(request.result);
+                        request.onerror = () => reject(request.error);
+                    });
+                    
+                    // Count categories
+                    const catTransaction = this.db.transaction(['categories'], 'readonly');
+                    const catStore = catTransaction.objectStore('categories');
+                    const categoryCount = await new Promise((resolve, reject) => {
+                        const request = catStore.count();
+                        request.onsuccess = () => resolve(request.result);
+                        request.onerror = () => reject(request.error);
+                    });
+                    
+                    const state = { tasks: taskCount, categories: categoryCount, version };
+                    console.log('📊 Database state:', state);
+                    return state;
+                    
+                } catch (error) {
+                    console.error('❌ Failed to check database state:', error);
+                    return { tasks: 0, categories: 0, version: 'error', error: error.message };
+                }
+            }
+            
+            /**
+             * 🔧 DATABASE RECOVERY: Reset database to v1 if v2 migration failed
+             */
+            async resetDatabaseToV1() {
+                try {
+                    console.log('🔄 Resetting database to v1...');
+                    
+                    // Close current connection
+                    if (this.db) {
+                        this.db.close();
+                    }
+                    
+                    // Delete the v2 database
+                    await new Promise((resolve, reject) => {
+                        const deleteRequest = indexedDB.deleteDatabase(this.dbName);
+                        deleteRequest.onsuccess = () => {
+                            console.log('✅ Database deleted');
+                            resolve();
+                        };
+                        deleteRequest.onerror = () => reject(deleteRequest.error);
+                        deleteRequest.onblocked = () => {
+                            console.warn('⚠️ Database deletion blocked');
+                        };
+                    });
+                    
+                    // Reset to v1
+                    this.version = 1;
+                    this.isInitialized = false;
+                    
+                    // Reinitialize
+                    await this.init();
+                    
+                    console.log('✅ Database reset to v1 completed');
+                    return true;
+                    
+                } catch (error) {
+                    console.error('❌ Database reset failed:', error);
+                    return false;
+                }
+            }
+
+            /**
              * 🔍 MAJOR FUNCTION POINT #2: CRUD OPERATIONS
              * 
              * These methods implement the core Create, Read, Update, Delete operations
@@ -1154,6 +1394,9 @@
              */
             async createTask(taskData) {
                 try {
+                    // Ensure database is ready
+                    await this.ensureDatabase();
+                    
                     // Validate and sanitize input
                     const task = this.validateTaskData(taskData);
                     
@@ -1187,6 +1430,9 @@
              */
             async readTask(id) {
                 try {
+                    // Ensure database is ready
+                    await this.ensureDatabase();
+                    
                     const transaction = this.db.transaction(['tasks'], 'readonly');
                     const store = transaction.objectStore('tasks');
                     
@@ -1276,6 +1522,9 @@
              */
             async getAllTasks(filter = {}) {
                 try {
+                    // Ensure database is initialized
+                    await this.ensureDatabase();
+                    
                     const transaction = this.db.transaction(['tasks'], 'readonly');
                     const store = transaction.objectStore('tasks');
                     
@@ -1298,7 +1547,8 @@
                     
                 } catch (error) {
                     console.error('❌ Failed to get tasks:', error);
-                    throw error;
+                    // Return empty array as fallback
+                    return [];
                 }
             }
             
@@ -1374,6 +1624,40 @@
                     }
                 }
                 
+                // NEW: Dependencies validation
+                if (data.dependencies !== undefined) {
+                    if (Array.isArray(data.dependencies)) {
+                        // Validate each dependency ID
+                        sanitized.dependencies = data.dependencies.filter(dep => 
+                            typeof dep === 'string' && dep.trim().length > 0
+                        );
+                        
+                        // Remove duplicates
+                        sanitized.dependencies = [...new Set(sanitized.dependencies)];
+                        
+                        // Limit to prevent abuse
+                        if (sanitized.dependencies.length > 50) {
+                            throw new Error('Too many dependencies (maximum 50)');
+                        }
+                    } else {
+                        sanitized.dependencies = [];
+                    }
+                }
+                
+                // NEW: Dependency type validation
+                if (data.dependencyType !== undefined) {
+                    const validTypes = ['blocking', 'reference'];
+                    if (!validTypes.includes(data.dependencyType)) {
+                        throw new Error('Invalid dependency type');
+                    }
+                    sanitized.dependencyType = data.dependencyType;
+                }
+                
+                // NEW: Blocked status validation
+                if (data.isBlocked !== undefined) {
+                    sanitized.isBlocked = Boolean(data.isBlocked);
+                }
+                
                 // Set defaults for new tasks
                 if (requireTitle) {
                     sanitized.status = sanitized.status || 'pending';
@@ -1381,6 +1665,10 @@
                     sanitized.description = sanitized.description || '';
                     sanitized.dueDate = sanitized.dueDate || null;
                     sanitized.categoryId = sanitized.categoryId || null;
+                    // NEW: Set dependency defaults
+                    sanitized.dependencies = sanitized.dependencies || [];
+                    sanitized.dependencyType = sanitized.dependencyType || 'blocking';
+                    sanitized.isBlocked = sanitized.isBlocked || false;
                 }
                 
                 return sanitized;
@@ -1405,6 +1693,245 @@
             }
 
             /**
+             * 🔗 TASK DEPENDENCY MANAGEMENT
+             * 
+             * These methods handle task dependency relationships:
+             * - ➕ Add dependencies between tasks
+             * - ➖ Remove dependency relationships
+             * - 📋 Query dependent and blocking tasks
+             * - 🔍 Circular dependency detection
+             * - 🚫 Completion validation based on dependencies
+             */
+
+            /**
+             * Add a dependency relationship between tasks
+             */
+            async addDependency(taskId, dependsOnId, dependencyType = 'blocking') {
+                try {
+                    // Validate inputs
+                    if (!taskId || !dependsOnId) {
+                        throw new Error('Both task ID and dependency ID are required');
+                    }
+                    
+                    if (taskId === dependsOnId) {
+                        throw new Error('A task cannot depend on itself');
+                    }
+                    
+                    // Get both tasks to ensure they exist
+                    const [task, dependencyTask] = await Promise.all([
+                        this.readTask(taskId),
+                        this.readTask(dependsOnId)
+                    ]);
+                    
+                    if (!task) {
+                        throw new Error('Task not found');
+                    }
+                    if (!dependencyTask) {
+                        throw new Error('Dependency task not found');
+                    }
+                    
+                    // Check for circular dependencies
+                    if (await this.wouldCreateCircularDependency(taskId, dependsOnId)) {
+                        throw new Error('Adding this dependency would create a circular dependency');
+                    }
+                    
+                    // Add dependency if not already present
+                    const currentDeps = task.dependencies || [];
+                    if (!currentDeps.includes(dependsOnId)) {
+                        const updatedDeps = [...currentDeps, dependsOnId];
+                        await this.updateTask(taskId, { 
+                            dependencies: updatedDeps,
+                            dependencyType 
+                        });
+                        
+                        // Update blocked status
+                        await this.updateBlockedStatus(taskId);
+                        
+                        console.log(`🔗 Added dependency: ${taskId} depends on ${dependsOnId}`);
+                        return true;
+                    }
+                    
+                    return false; // Dependency already exists
+                    
+                } catch (error) {
+                    console.error('❌ Failed to add dependency:', error);
+                    throw error;
+                }
+            }
+
+            /**
+             * Remove a dependency relationship
+             */
+            async removeDependency(taskId, dependsOnId) {
+                try {
+                    const task = await this.readTask(taskId);
+                    if (!task) {
+                        throw new Error('Task not found');
+                    }
+                    
+                    const currentDeps = task.dependencies || [];
+                    const updatedDeps = currentDeps.filter(dep => dep !== dependsOnId);
+                    
+                    if (updatedDeps.length !== currentDeps.length) {
+                        await this.updateTask(taskId, { dependencies: updatedDeps });
+                        
+                        // Update blocked status
+                        await this.updateBlockedStatus(taskId);
+                        
+                        console.log(`🔗 Removed dependency: ${taskId} no longer depends on ${dependsOnId}`);
+                        return true;
+                    }
+                    
+                    return false; // Dependency didn't exist
+                    
+                } catch (error) {
+                    console.error('❌ Failed to remove dependency:', error);
+                    throw error;
+                }
+            }
+
+            /**
+             * Get all tasks that this task depends on
+             */
+            async getDependencies(taskId) {
+                try {
+                    const task = await this.readTask(taskId);
+                    if (!task || !task.dependencies) {
+                        return [];
+                    }
+                    
+                    // Fetch all dependency tasks
+                    const dependencies = [];
+                    for (const depId of task.dependencies) {
+                        const depTask = await this.readTask(depId);
+                        if (depTask) {
+                            dependencies.push(depTask);
+                        }
+                    }
+                    
+                    return dependencies;
+                    
+                } catch (error) {
+                    console.error('❌ Failed to get dependencies:', error);
+                    throw error;
+                }
+            }
+
+            /**
+             * Get all tasks that are blocked by this task
+             */
+            async getBlockedTasks(taskId) {
+                try {
+                    const transaction = this.db.transaction(['tasks'], 'readonly');
+                    const store = transaction.objectStore('tasks');
+                    const index = store.index('by-dependencies');
+                    
+                    const blockedTasks = await new Promise((resolve, reject) => {
+                        const request = index.getAll(taskId);
+                        request.onsuccess = () => resolve(request.result);
+                        request.onerror = () => reject(request.error);
+                    });
+                    
+                    return blockedTasks;
+                    
+                } catch (error) {
+                    console.error('❌ Failed to get blocked tasks:', error);
+                    throw error;
+                }
+            }
+
+            /**
+             * Check if adding a dependency would create a circular dependency
+             */
+            async wouldCreateCircularDependency(taskId, dependsOnId) {
+                try {
+                    // Use depth-first search to detect cycles
+                    const visited = new Set();
+                    const recursionStack = new Set();
+                    
+                    const hasCycle = async (currentId) => {
+                        if (recursionStack.has(currentId)) {
+                            return true; // Found cycle
+                        }
+                        
+                        if (visited.has(currentId)) {
+                            return false; // Already processed
+                        }
+                        
+                        visited.add(currentId);
+                        recursionStack.add(currentId);
+                        
+                        // Get dependencies of current task
+                        const task = await this.readTask(currentId);
+                        const dependencies = task?.dependencies || [];
+                        
+                        // If we're checking the original task and it depends on the new dependency
+                        if (currentId === dependsOnId && dependencies.includes(taskId)) {
+                            return true;
+                        }
+                        
+                        // Check all dependencies recursively
+                        for (const depId of dependencies) {
+                            if (await hasCycle(depId)) {
+                                return true;
+                            }
+                        }
+                        
+                        recursionStack.delete(currentId);
+                        return false;
+                    };
+                    
+                    return await hasCycle(taskId);
+                    
+                } catch (error) {
+                    console.error('❌ Circular dependency check failed:', error);
+                    return true; // Err on the side of caution
+                }
+            }
+
+            /**
+             * Update the blocked status of a task based on its dependencies
+             */
+            async updateBlockedStatus(taskId) {
+                try {
+                    const dependencies = await this.getDependencies(taskId);
+                    const isBlocked = dependencies.some(dep => dep.status !== 'completed');
+                    
+                    await this.updateTask(taskId, { isBlocked });
+                    
+                    return isBlocked;
+                    
+                } catch (error) {
+                    console.error('❌ Failed to update blocked status:', error);
+                    throw error;
+                }
+            }
+
+            /**
+             * Check if a task can be completed (all dependencies satisfied)
+             */
+            async canComplete(taskId) {
+                try {
+                    const task = await this.readTask(taskId);
+                    if (!task) {
+                        return false;
+                    }
+                    
+                    // Only blocking dependencies prevent completion
+                    if (task.dependencyType === 'reference') {
+                        return true;
+                    }
+                    
+                    const dependencies = await this.getDependencies(taskId);
+                    return dependencies.every(dep => dep.status === 'completed');
+                    
+                } catch (error) {
+                    console.error('❌ Failed to check completion eligibility:', error);
+                    return false;
+                }
+            }
+
+            /**
              * 🏷️ CATEGORY MANAGEMENT OPERATIONS
              * 
              * These methods provide CRUD operations for task categories/projects:
@@ -1419,6 +1946,9 @@
              */
             async createCategory(categoryData) {
                 try {
+                    // Ensure database is ready
+                    await this.ensureDatabase();
+                    
                     const category = this.validateCategoryData(categoryData);
                     category.id = this.generateCategoryUUID();
                     category.createdAt = new Date().toISOString();
@@ -1447,6 +1977,9 @@
              */
             async getAllCategories() {
                 try {
+                    // Ensure database is ready
+                    await this.ensureDatabase();
+                    
                     const transaction = this.db.transaction(['categories'], 'readonly');
                     const store = transaction.objectStore('categories');
                     
@@ -1460,7 +1993,8 @@
                     return categories.sort((a, b) => a.name.localeCompare(b.name));
                 } catch (error) {
                     console.error('❌ Error fetching categories:', error);
-                    throw error;
+                    // Return empty array as fallback
+                    return [];
                 }
             }
 
@@ -2110,6 +2644,34 @@
             }
 
             /**
+             * Update task count for a specific category
+             */
+            async updateCategoryTaskCount(categoryId) {
+                try {
+                    if (!categoryId) return;
+                    
+                    const category = this.categories.get(categoryId);
+                    if (!category) {
+                        console.warn(`⚠️ Category ${categoryId} not found in cache`);
+                        return;
+                    }
+                    
+                    const tasks = await this.database.getTasksByCategory(categoryId);
+                    const taskCount = tasks.length;
+                    
+                    // Update in-memory cache
+                    category.taskCount = taskCount;
+                    
+                    // Update in database
+                    await this.database.updateCategory(categoryId, { taskCount });
+                    
+                    console.log(`📊 Updated task count for "${category.name}": ${taskCount}`);
+                } catch (error) {
+                    console.error('❌ Error updating category task count:', error);
+                }
+            }
+
+            /**
              * Get color palette for categories
              */
             getColorPalette() {
@@ -2209,10 +2771,26 @@
                     // Initialize database
                     await this.database.init();
                     
+                    // Verify database is properly initialized
+                    if (!this.database.db || !this.database.isInitialized) {
+                        throw new Error('Database initialization failed');
+                    }
+                    
                     // Initialize Category Manager
                     this.categoryManager = new CategoryManager(this.database);
                     await this.categoryManager.init();
                     console.log('✅ Category Manager initialized');
+                    
+                    // Enable category management button now that CategoryManager is ready
+                    const manageCategoriesBtn = document.getElementById('manage-categories-btn');
+                    if (manageCategoriesBtn) {
+                        manageCategoriesBtn.disabled = false;
+                        manageCategoriesBtn.title = 'Manage task categories';
+                        manageCategoriesBtn.innerHTML = '📂 Manage Categories';
+                    }
+                    
+                    // Refresh category-related UI now that CategoryManager is ready
+                    this.refreshCategoryUI();
                     
                     // Initialize Background Sync Manager
                     this.backgroundSyncManager = new BackgroundSyncManager(this.database);
@@ -2251,6 +2829,25 @@
                 } catch (error) {
                     console.error('❌ Failed to initialize Task Manager:', error);
                     this.showError('Failed to initialize the application. Please refresh the page.');
+                }
+            }
+            
+            /**
+             * Refresh category-related UI elements after CategoryManager is ready
+             */
+            refreshCategoryUI() {
+                try {
+                    console.log('🔄 Refreshing category UI elements...');
+                    
+                    // Refresh category selector in task form
+                    this.initializeCategorySelector();
+                    
+                    // Refresh category filter dropdown
+                    this.populateFilterOptions();
+                    
+                    console.log('✅ Category UI refreshed');
+                } catch (error) {
+                    console.error('❌ Failed to refresh category UI:', error);
                 }
             }
             
@@ -2510,11 +3107,18 @@
             async loadTasks() {
                 try {
                     this.setLoading(true);
+                    
+                    // Ensure database is ready
+                    if (!this.database || !this.database.db || !this.database.isInitialized) {
+                        console.warn('⚠️ Database not ready, attempting reinitialization...');
+                        await this.init();
+                    }
+                    
                     this.tasks = await this.database.getAllTasks();
                     console.log(`📋 Loaded ${this.tasks.length} tasks`);
                 } catch (error) {
                     console.error('❌ Failed to load tasks:', error);
-                    this.showError('Failed to load tasks');
+                    this.showError('Failed to load tasks. Please refresh the page.');
                     this.tasks = [];
                 } finally {
                     this.setLoading(false);
@@ -3619,6 +4223,13 @@
                 const categorySelect = document.getElementById('task-category');
                 if (!categorySelect) return;
                 
+                // Check if categoryManager is available
+                if (!this.categoryManager) {
+                    console.warn('⚠️ CategoryManager not available for selector initialization');
+                    categorySelect.innerHTML = '<option value="">No Category</option>';
+                    return;
+                }
+                
                 const categories = this.categoryManager.getCategoriesForSelector();
                 categorySelect.innerHTML = '';
                 
@@ -3633,6 +4244,11 @@
                 this.populateCategoryFilter();
             } catch (error) {
                 console.error('❌ Error initializing category selector:', error);
+                // Fallback: provide basic option
+                const categorySelect = document.getElementById('task-category');
+                if (categorySelect) {
+                    categorySelect.innerHTML = '<option value="">No Category</option>';
+                }
             }
         };
 
@@ -3642,6 +4258,13 @@
         TaskManager.prototype.openCategoryManager = function() {
             const modal = document.getElementById('category-modal');
             if (!modal) return;
+            
+            // Check if CategoryManager is initialized
+            if (!this.categoryManager) {
+                console.warn('⚠️ CategoryManager not initialized. Still starting up...');
+                this.showError('Category system is still initializing. Please wait a moment and try again.');
+                return;
+            }
             
             modal.style.display = 'flex';
             this.initializeCategoryModal();
@@ -3676,7 +4299,32 @@
             const colorInput = document.getElementById('category-color');
             if (!colorPicker || !colorInput) return;
             
+            // Check if categoryManager is available
+            if (!this.categoryManager) {
+                console.warn('⚠️ CategoryManager not initialized, using default colors');
+                // Use default color palette if categoryManager is not available
+                const defaultColors = [
+                    { name: 'Blue', value: '#3b82f6' },
+                    { name: 'Green', value: '#10b981' },
+                    { name: 'Purple', value: '#8b5cf6' },
+                    { name: 'Red', value: '#ef4444' },
+                    { name: 'Orange', value: '#f59e0b' },
+                    { name: 'Pink', value: '#ec4899' },
+                    { name: 'Indigo', value: '#6366f1' },
+                    { name: 'Teal', value: '#14b8a6' }
+                ];
+                this.renderColorOptions(colorPicker, colorInput, defaultColors);
+                return;
+            }
+            
             const colors = this.categoryManager.getColorPalette();
+            this.renderColorOptions(colorPicker, colorInput, colors);
+        };
+        
+        /**
+         * Render color options
+         */
+        TaskManager.prototype.renderColorOptions = function(colorPicker, colorInput, colors) {
             colorPicker.innerHTML = '';
             
             colors.forEach(color => {
@@ -3712,7 +4360,32 @@
             const iconInput = document.getElementById('category-icon');
             if (!iconPicker || !iconInput) return;
             
+            // Check if categoryManager is available
+            if (!this.categoryManager) {
+                console.warn('⚠️ CategoryManager not initialized, using default icons');
+                // Use default icon palette if categoryManager is not available
+                const defaultIcons = [
+                    { name: 'Work', value: '💼' },
+                    { name: 'Personal', value: '👤' },
+                    { name: 'Health', value: '🏥' },
+                    { name: 'Finance', value: '💰' },
+                    { name: 'Education', value: '📚' },
+                    { name: 'Home', value: '🏠' },
+                    { name: 'Travel', value: '✈️' },
+                    { name: 'Shopping', value: '🛒' }
+                ];
+                this.renderIconOptions(iconPicker, iconInput, defaultIcons);
+                return;
+            }
+            
             const icons = this.categoryManager.getIconPalette();
+            this.renderIconOptions(iconPicker, iconInput, icons);
+        };
+        
+        /**
+         * Render icon options
+         */
+        TaskManager.prototype.renderIconOptions = function(iconPicker, iconInput, icons) {
             iconPicker.innerHTML = '';
             
             icons.forEach(icon => {
@@ -3767,6 +4440,12 @@
                 
                 if (!formData.name.trim()) {
                     this.showError('Please enter a category name');
+                    return;
+                }
+                
+                // Check if categoryManager is available
+                if (!this.categoryManager) {
+                    this.showError('Category manager not initialized. Please refresh the page.');
                     return;
                 }
                 
@@ -3838,6 +4517,13 @@
             try {
                 const categoryList = document.getElementById('category-list');
                 if (!categoryList) return;
+                
+                // Check if categoryManager is available
+                if (!this.categoryManager) {
+                    console.warn('⚠️ CategoryManager not available');
+                    categoryList.innerHTML = '<p style="text-align: center; color: var(--color-text-muted);">Category manager not initialized.</p>';
+                    return;
+                }
                 
                 const categories = await this.categoryManager.getCategoriesWithStats();
                 categoryList.innerHTML = '';
@@ -3936,6 +4622,12 @@
          */
         TaskManager.prototype.deleteCategory = async function(categoryId) {
             try {
+                // Check if categoryManager is available
+                if (!this.categoryManager) {
+                    this.showError('Category manager not initialized. Please refresh the page.');
+                    return;
+                }
+                
                 const category = this.categoryManager.getCategory(categoryId);
                 if (!category) return;
                 
@@ -4041,6 +4733,13 @@
         TaskManager.prototype.populateCategoryFilter = function() {
             const categoryFilter = document.getElementById('filter-category');
             if (!categoryFilter) return;
+            
+            // Check if categoryManager is available
+            if (!this.categoryManager) {
+                console.warn('⚠️ CategoryManager not available for filter population');
+                categoryFilter.innerHTML = '<option value="">All Categories</option>';
+                return;
+            }
             
             const categories = this.categoryManager.getAllCategories();
             
@@ -5243,8 +5942,94 @@
                 }
                 
                 // Initialize task manager (this should always work)
-                taskManager = new TaskManager();
-                await taskManager.init();
+                try {
+                    taskManager = new TaskManager();
+                    await taskManager.init();
+                    
+                    // 🔧 DEBUGGING: Check database state after initialization
+                    console.log('🔍 Checking database state after initialization...');
+                    const dbState = await taskManager.database.checkDatabaseState();
+                    console.log('📊 Database state:', dbState);
+                    
+                } catch (initError) {
+                    console.error('❌ Task Manager initialization failed:', initError);
+                    
+                    // Show user-friendly error message
+                    document.body.innerHTML = `
+                        <div style="padding: 40px; text-align: center; font-family: system-ui;">
+                            <h2 style="color: #dc2626;">⚠️ Initialization Failed</h2>
+                            <p style="margin: 20px 0; color: #666;">
+                                The task manager failed to initialize. This might be due to browser storage issues.
+                            </p>
+                            <button onclick="location.reload()" style="padding: 10px 20px; background: #2563eb; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                                Retry
+                            </button>
+                            <details style="margin-top: 20px; text-align: left;">
+                                <summary style="cursor: pointer;">Technical Details</summary>
+                                <pre style="background: #f5f5f5; padding: 10px; margin-top: 10px; border-radius: 5px; overflow: auto;">${initError.stack}</pre>
+                            </details>
+                        </div>
+                    `;
+                    return; // Stop further initialization
+                }
+                
+                // Add global helpers for database management
+                window.enableDependencies = async () => {
+                    console.log('🔄 Enabling dependency support...');
+                    const success = await taskManager.database.upgradeToDependencySupport();
+                    if (success) {
+                        console.log('✅ Dependencies enabled. Please refresh the page.');
+                        location.reload();
+                    } else {
+                        console.error('❌ Failed to enable dependencies');
+                    }
+                };
+                
+                window.checkDatabase = () => taskManager.database.checkDatabaseState();
+                
+                window.recoverDatabase = async () => {
+                    console.log('🔄 Attempting database recovery...');
+                    const success = await taskManager.database.resetDatabaseToV1();
+                    if (success) {
+                        console.log('✅ Database recovered. Please refresh the page.');
+                        location.reload();
+                    } else {
+                        console.error('❌ Database recovery failed');
+                    }
+                };
+                
+                // Add a simple test function
+                window.testTaskCreation = async () => {
+                    try {
+                        console.log('🧪 Testing task creation...');
+                        const testTask = await taskManager.database.createTask({
+                            title: 'Test Task',
+                            description: 'This is a test task',
+                            priority: 'medium'
+                        });
+                        console.log('✅ Test task created:', testTask);
+                        
+                        // Refresh UI
+                        await taskManager.loadTasks();
+                        taskManager.render();
+                        
+                        return testTask;
+                    } catch (error) {
+                        console.error('❌ Test task creation failed:', error);
+                        return null;
+                    }
+                };
+                
+                // Provide guidance based on database state
+                if (dbState.version === 1 && dbState.tasks > 0) {
+                    console.log('� Your existing tasks are safe!');
+                    console.log('💡 To enable task dependencies, run: enableDependencies()');
+                } else if (dbState.version === 1 && dbState.tasks === 0) {
+                    console.log('📋 Fresh database - ready for use!');
+                    console.log('💡 To enable task dependencies, run: enableDependencies()');
+                } else if (dbState.version === 2) {
+                    console.log('🔗 Dependency support is enabled');
+                }
                 
                 // Setup cleanup for cross-tab sync when page unloads
                 window.addEventListener('beforeunload', () => {
