@@ -229,7 +229,7 @@ async function syncDeleteTask(taskData) {
 // IndexedDB operations for Service Worker
 async function openDatabase() {
     return new Promise((resolve, reject) => {
-        const request = indexedDB.open('TaskManagerDB', 1);
+        const request = indexedDB.open('TaskManagerDB', 3);
         request.onsuccess = () => resolve(request.result);
         request.onerror = () => reject(request.error);
         

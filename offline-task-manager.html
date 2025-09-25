@@ -1819,7 +1819,7 @@
         class TaskDatabase {
             constructor() {
                 this.dbName = 'TaskManagerDB';
-                this.version = 1; // TEMPORARILY REVERTED: Back to v1 for safety
+                this.version = 3; // Updated version to handle existing database
                 this.db = null;
                 this.isInitialized = false;
                 this.backupDbName = 'TaskManagerDB_Backup'; // Backup database
@@ -7833,14 +7833,20 @@
                 }
                 
                 // Initialize task manager (this should always work)
+                let dbState = null; // Declare dbState in outer scope
                 try {
                     taskManager = new TaskManager();
                     await taskManager.init();
                     
                     // 🔧 DEBUGGING: Check database state after initialization
                     console.log('🔍 Checking database state after initialization...');
-                    const dbState = await taskManager.database.checkDatabaseState();
-                    console.log('📊 Database state:', dbState);
+                    try {
+                        dbState = await taskManager.database.checkDatabaseState();
+                        console.log('📊 Database state:', dbState);
+                    } catch (stateError) {
+                        console.warn('⚠️ Could not check database state:', stateError.message);
+                        dbState = { version: 'unknown', tasks: 0, categories: 0 };
+                    }
                     
                 } catch (initError) {
                     console.error('❌ Task Manager initialization failed:', initError);
@@ -7912,13 +7918,13 @@
                 };
                 
                 // Provide guidance based on database state
-                if (dbState.version === 1 && dbState.tasks > 0) {
+                if (dbState && dbState.version === 1 && dbState.tasks > 0) {
                     console.log('� Your existing tasks are safe!');
                     console.log('💡 To enable task dependencies, run: enableDependencies()');
-                } else if (dbState.version === 1 && dbState.tasks === 0) {
+                } else if (dbState && dbState.version === 1 && dbState.tasks === 0) {
                     console.log('📋 Fresh database - ready for use!');
                     console.log('💡 To enable task dependencies, run: enableDependencies()');
-                } else if (dbState.version === 2) {
+                } else if (dbState && dbState.version >= 2) {
                     console.log('🔗 Dependency support is enabled');
                 }
                 
