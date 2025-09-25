@@ -1,61 +1,74 @@
-# Copilot Instructions for Sky Project - Engineering Edition
+# Copilot Instructions for Sky Project - Offline Task Manager
 
 ## 🏗️ Architecture Overview
 
-This project contains **two distinct single-file applications** with zero external dependencies, designed with engineering-first principles for production-grade vanilla HTML/CSS/JavaScript development.
+This project is a **single-file offline-first task management application** (`index.html`) with zero external dependencies, designed with progressive enhancement and vanilla web technologies.
 
-### 1. **Autonomous Marketplace** (`autonomous-marketplace.html`)
-- **AI-powered app generator** that creates web applications through natural language
-- **Google Gemini integration** with API key management (`/api-key` command)
-- **7 core classes**: ConversationManager, AppManager, SecurityValidator, ComplexityAnalyzer, QueueManager, AppExecutor, AIService
-- **State management**: Global `AppMarketplace` object with Map-based app storage
-- **Security**: Multi-layer validation, XSS prevention, safe code execution sandbox
-
-### 2. **Offline Task Manager** (`offline-task-manager.html`)  
-- **Offline-first task management** with IndexedDB persistence
-- **2 core classes**: TaskDatabase, TaskManager
-- **PWA capabilities**: Installable app with embedded manifest
+### **Core Application: Offline Task Manager** (`index.html`)
+- **Offline-first task management** with IndexedDB persistence and Service Worker caching
+- **2 main classes**: `TaskDatabase`, `TaskManager` 
+- **Advanced features**: Task dependencies, categories, cross-tab sync, background operations
+- **PWA capabilities**: Service worker (`sw.js`), offline functionality, installable app
 - **Optimistic UI**: Instant updates with database rollback on failure
+- **Single-file architecture**: 9,600+ lines embedding HTML, CSS, JavaScript, and PWA manifest
 
-## 🎯 Engineering Goals
+## 🎯 Current Implementation Status
 
-Favor standard platform features, progressive enhancement, and deterministic behaviors that work in constrained environments and degrade gracefully when APIs are unavailable. Minimize surface area by keeping apps self-contained while using manifests and service workers to bundle install-time metadata and caching strategies for reliability and performance.
+**✅ Completed Features:**
+- Complete task CRUD operations with optimistic UI
+- IndexedDB storage with transaction-based operations
+- Task dependencies system (blocking/reference relationships)
+- Category management with color/icon customization  
+- Real-time cross-tab synchronization via BroadcastChannel
+- Service Worker with intelligent caching strategies
+- Advanced filtering (category, status, priority, dependencies)
+- Responsive design with dark/light theme support
+- PWA manifest with offline capabilities
+
+**🚧 Key Technical Patterns:**
+- **Database versioning**: Handles schema migrations (currently v3)
+- **Dependency engine**: Complex task relationship management with blocking logic
+- **Optimistic updates**: UI updates immediately, rolls back on database errors
+- **Cross-tab sync**: Real-time updates across multiple browser tabs
+- **Background operations**: Service Worker handles offline queue and sync
 
 ## 🏛️ Architecture Principles
 
-- **Single-file packaging**: embed HTML, CSS, JS, and PWA manifest to ship self-contained apps that the browser can parse and execute directly using standard loading rules for documents and scripts.
-- **Progressive enhancement**: render meaningful baseline HTML, layer interactivity and offline capabilities via feature detection for service workers and related APIs to avoid breaking baseline functionality.
-- **Separation of concerns in vanilla JS**: isolate DOM rendering and state transitions in small units, and keep cross-cutting concerns (security validation, analytics, and sandbox execution) independent to reduce coupling.
+- **Single-file packaging**: All HTML, CSS, JavaScript, and PWA manifest embedded in `index.html` (~9,600 lines)
+- **Zero dependencies**: No external libraries, frameworks, or CDN resources
+- **Progressive enhancement**: Baseline functionality works without advanced APIs, enhanced features layer on top
+- **Offline-first design**: All operations work offline, sync enhances but isn't required
+- **Vanilla web technologies**: Uses only standard browser APIs (IndexedDB, Service Workers, BroadcastChannel)
 
 ## 💾 Data and State
 
-### **IndexedDB as the Durable Store**
-All reads and writes must run within transactions, enabling atomic commit/rollback and consistency across object stores when scoped correctly.
+### **IndexedDB as Primary Storage** (`TaskDatabase` class)
+The app uses IndexedDB for persistent, offline-first data storage with these object stores:
+- **tasks**: Main task data with dependencies, categories, priorities
+- **categories**: Custom user-defined categories with colors/icons
+- **settings**: User preferences and configuration
 
 ```javascript
-// Transaction usage: open transactions from IDBDatabase, operate through IDBObjectStore
+// Example transaction pattern from the codebase
 class TaskDatabase {
     async createTask(data) {
         const task = this.validateTaskData(data);
         const tx = this.db.transaction(['tasks'], 'readwrite');
         const store = tx.objectStore('tasks');
         await store.put(task);
-        await tx.done; // or await completion via event/callback if using callbacks
+        await tx.done;
+        
+        // Cross-tab sync notification
+        this.broadcastChange('task-created', task);
     }
 }
 ```
 
-### **In-Memory Caches**
-Prefer immutable snapshots or Map-based stores for live data with explicit synchronization points to reduce incidental writes outside transactional boundaries.
-
-```javascript
-// In-memory Map storage (Autonomous Marketplace)
-const AppMarketplace = {
-    apps: new Map(),              // Live application instances
-    runningApps: new Set(),       // Track execution state
-    save: () => localStorage.setItem('autonomous-marketplace-apps', ...)
-};
-```
+### **In-Memory State Management** (`TaskManager` class)
+- **tasks array**: Live task list with optimistic updates
+- **categories Map**: Category definitions with metadata  
+- **Cross-tab sync**: BroadcastChannel API for real-time updates
+- **Filter state**: Current view filters (status, category, priority, dependencies)
 
 ## 🖥️ DOM and Rendering
 
@@ -144,39 +157,10 @@ Run untrusted content in sandboxed iframes and avoid allow-same-origin with allo
 ### **Sanitize and Encode**
 Treat all input as untrusted, encode on output, and isolate unsafe rendering paths; prefer textContent over innerHTML for plain text insertion.
 
-## 📱 PWA Packaging and Lifecycle
-
-### **Web App Manifest**
-Include a manifest with name, icons, start_url, scope, and display to enable installation and standardized metadata for app-like behavior.
-
-```html
-<link rel="manifest" href="/app.webmanifest">
-```
-
-### **Service Worker Lifecycle**
-Register a service worker for offline reliability and programmable caching; treat this as progressive enhancement when unsupported.
-
-```javascript
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/sw.js');
-}
-```
-
-### **Programmable Caching**
-Use Cache API strategies to control fetch handling, background updating, and fallbacks to optimize perceived performance and resilience.
-
-## ⚡ Performance and Memory
-
-### **Minimize Layout Thrash**
-Construct lists with DocumentFragment and append once to reduce reflow/paint cycles in large renders.
-
-### **Animation Cadence**
-Perform per-frame work in requestAnimationFrame and compute deltas from the timestamp for refresh-rate independence.
-
-### **Off-Main-Thread Work**
-Move heavy logic to Web Workers when needed to keep the UI responsive and isolate computations from the rendering thread.
+## 📱 Key Implementation Patterns
 
 ### **Optimistic UI Updates**
+The app uses optimistic UI for instant feedback with database rollback:
 ```javascript
 // Pattern: Update UI immediately, persist to storage, rollback on failure
 async createTask() {
@@ -188,24 +172,106 @@ async createTask() {
         // 2. Persist to database
         const savedTask = await this.database.createTask(formData);
         // 3. Replace optimistic with real data
-        this.tasks[index] = savedTask;
+        this.tasks[0] = savedTask;
     } catch (error) {
         // 4. Rollback on failure
         this.tasks = this.tasks.filter(t => t.id !== optimisticTask.id);
+        this.showError('Failed to create task');
     }
 }
 ```
 
-## ✅ Acceptance Criteria Patterns
+### **Cross-Tab Synchronization**
+Real-time sync across browser tabs using BroadcastChannel:
+```javascript
+// TaskManager broadcasts changes
+this.channel = new BroadcastChannel('task-updates');
+this.channel.postMessage({ type: 'task-created', task });
 
-### **Data Integrity**
-All durable writes run within IndexedDB transactions with explicit abort on validation failure and commit on success.
+// Other tabs listen and update
+this.channel.addEventListener('message', (event) => {
+    if (event.data.type === 'task-created') {
+        this.addTaskToList(event.data.task);
+    }
+});
+```
 
-### **Rendering Safety**
-No direct HTML injection from untrusted sources; use text nodes or sanitized templates and avoid unsafe sinks known to enable DOM XSS.
+### **Dependency Management System**
+Complex task relationships with blocking logic:
+- **Blocking dependencies**: Task cannot be completed until dependencies finish
+- **Reference dependencies**: Informational links between tasks
+- **Dependency chains**: Visual representation of task relationships
+- **Blocked task detection**: Automatic status calculation based on dependencies
 
-### **Isolation**
-All dynamically executed user or AI-generated code runs in a sandboxed iframe or worker boundary with capability minimization.
+## 🔧 Development Guidelines
+
+### **Database Operations**
+- Always wrap operations in IndexedDB transactions for data integrity
+- Use database versioning for schema migrations (currently v3)
+- Handle migration gracefully for existing users
+- Implement proper error handling with user-friendly messages
+
+### **UI/UX Patterns**
+- Use DocumentFragment for batch DOM updates to minimize reflows
+- Implement debounced input handling for search/filter operations
+- Show loading states and progress indicators for long operations
+- Provide visual feedback for user actions (success/error states)
+
+### **Security & Validation**
+- Sanitize all user input before displaying (use `textContent` not `innerHTML`)
+- Validate data at both UI and database layers
+- Implement proper error boundaries and graceful degradation
+- Never use `eval()` or similar dangerous functions
+
+### **Performance Optimization**
+- Use `requestAnimationFrame` for smooth animations and UI updates
+- Implement virtual scrolling for large task lists
+- Optimize IndexedDB queries with proper indexes
+- Cache frequently accessed data in memory
+
+## 🚨 Common Patterns in This Codebase
+
+### **Task Operations**
+```javascript
+// Create task with validation
+async addTask(taskData) {
+    const task = {
+        id: this.generateUUID(),
+        title: this.sanitizeInput(taskData.title),
+        status: 'pending',
+        createdAt: new Date().toISOString(),
+        dependencies: [],
+        isBlocked: false
+    };
+    
+    await this.database.createTask(task);
+    this.broadcastChange('task-created', task);
+}
+```
+
+### **Dependency Management**
+```javascript
+// Check if task is blocked by dependencies
+isTaskBlocked(task) {
+    return task.dependencies.some(depId => {
+        const depTask = this.getTaskById(depId.taskId);
+        return depTask && depTask.status !== 'completed' && depId.type === 'blocking';
+    });
+}
+```
+
+### **Cross-Tab Communication**
+```javascript
+// Broadcast changes to other tabs
+broadcastChange(type, data) {
+    this.channel.postMessage({ type, data, timestamp: Date.now() });
+}
+
+// Listen for changes from other tabs
+this.channel.addEventListener('message', (event) => {
+    this.handleRemoteChange(event.data);
+});
+```
 
 ## 🌐 Browser Compatibility
 
@@ -221,13 +287,13 @@ Rely on standard Shadow DOM APIs and slots for encapsulation rather than global 
 ## 🧪 Testing and Debugging Hooks
 
 ### **Service Worker Verification**
-Use DevTools Application panels to inspect manifest and service worker state, ensuring correct registration and caching semantics before release.
+Use DevTools Application panels to inspect service worker state, ensuring correct registration and caching semantics before release.
 
-### **Transactional Testing**
+### **IndexedDB Transaction Testing**
 Validate error paths by forcing IndexedDB aborts to confirm optimistic UI rollbacks and consistency under failure.
 
-### **Shadow DOM Validation**
-Verify slotting, scoping, and host styling behaviors through ShadowRoot inspection to ensure component encapsulation is preserved.
+### **Cross-Tab Communication Testing**
+Open multiple tabs to verify BroadcastChannel synchronization works correctly across browser instances.
 
 ```javascript
 // Enable debug mode via URL parameters
@@ -237,60 +303,6 @@ if (urlParams.has('debug')) {
 }
 ```
 
-## 📡 AI Integration Patterns
-
-### **Client-Side AI API Integration**
-Implement secure API communication with flexible service management:
-
-```javascript
-class AIServiceManager {
-    constructor(apiKey, provider = 'openai') {
-        this.apiKey = apiKey;
-        this.provider = provider;
-        this.baseURL = this.getProviderURL(provider);
-    }
-   
-    async generateApp(prompt) {
-        try {
-            const response = await fetch(this.baseURL, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${this.apiKey}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    messages: [{ role: 'user', content: prompt }],
-                    model: this.getProviderModel()
-                })
-            });
-           
-            return await response.json();
-        } catch (error) {
-            console.error('AI service error:', error);
-            return this.getFallbackResponse();
-        }
-    }
-}
-```
-
-### **Code Processing and Sandboxing**
-```javascript
-class CodeProcessor {
-    processAIResponse(response) {
-        const codeBlocks = this.extractCodeBlocks(response.content);
-        return {
-            html: codeBlocks.html || '',
-            css: codeBlocks.css || '',
-            javascript: codeBlocks.javascript || ''
-        };
-    }
-   
-    sandboxCode(jsCode) {
-        // Implement code sandboxing for security
-        return `(function() { ${jsCode} })();`;
-    }
-}
-```
 
 ## 🚨 Security Checklists
 
@@ -321,21 +333,24 @@ Keep styles and DOM isolated via Shadow DOM to prevent regressions from global C
 
 ```
 sky/
-├── autonomous-marketplace.html     # AI-powered app generator (2,789 lines)
-├── offline-task-manager.html      # Offline-first task manager (1,800+ lines)
-├── features_list.md               # 20 browser API application ideas
-├── technical-research.md          # Implementation patterns & architecture
-├── testing-strategy.md            # Multi-tier testing approach
-├── project_proposal.md            # Human-AI workflow documentation
-└── task-management-features.md    # Feature specifications
+├── index.html                  # Single-file task manager application (9,600+ lines)
+├── sw.js                      # Service Worker for offline functionality
+├── feature-list.md            # Comprehensive feature specification
+├── AGENTS.md                  # AI development guidelines
+├── README.md                  # Project overview
+└── archive/                   # Historical documentation and research
+    ├── autonomous-marketplace.html  # Archived AI app generator
+    ├── project_proposal.md     # Original project proposal
+    ├── technical-research.md   # Implementation patterns research
+    └── testing-strategy.md     # Testing approaches
 ```
 
 ### **When Adding New Features**
-1. **Read existing patterns** in technical-research.md
-2. **Follow single-file architecture** - embed everything
+1. **Read existing patterns** in the codebase before implementing
+2. **Follow single-file architecture** - embed everything in `index.html`
 3. **Implement security-first** - sanitize inputs, validate data
-4. **Use optimistic UI** - immediate feedback with rollback
-5. **Document major function points** - explain complex architecture decisions
-6. **Apply progressive enhancement** - ensure baseline functionality without advanced APIs
-7. **Use feature detection** - check for API availability before use
-8. **Implement proper error boundaries** - graceful degradation and recovery
+4. **Use optimistic UI** - immediate feedback with rollback capability
+5. **Test cross-tab sync** - ensure changes propagate across browser tabs
+6. **Handle offline mode** - all features must work without network connection
+7. **Update service worker** if new assets/API endpoints are added
+8. **Follow dependency patterns** when implementing task relationships
