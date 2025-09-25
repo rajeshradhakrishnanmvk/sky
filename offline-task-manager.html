@@ -514,6 +514,328 @@
             font-weight: 500;
         }
 
+        /* Enhanced dependency visual indicators */
+        .task-dependency-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-xs);
+            margin-right: var(--space-sm);
+        }
+
+        .task-dependency-chain-level {
+            background: linear-gradient(135deg, #3b82f6, #1e40af);
+            color: white;
+            padding: 2px 6px;
+            border-radius: var(--radius-xs);
+            font-size: 10px;
+            font-weight: bold;
+            min-width: 18px;
+            text-align: center;
+        }
+
+        .task-dependency-progress {
+            display: inline-block;
+            width: 60px;
+            height: 8px;
+            background-color: #e5e7eb;
+            border-radius: var(--radius-xs);
+            overflow: hidden;
+        }
+
+        .task-dependency-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #10b981, #059669);
+            transition: width 0.3s ease;
+        }
+
+        .task-has-dependencies {
+            border-left: 4px solid #3b82f6;
+        }
+
+        .task-has-dependents {
+            border-right: 4px solid #f59e0b;
+        }
+
+        .task-critical-path {
+            box-shadow: 0 0 0 2px #dc2626, 0 0 8px rgba(220, 38, 38, 0.3);
+        }
+
+        .task-ready-to-start {
+            background-color: #f0f9ff;
+            border-left-color: #0ea5e9;
+        }
+
+        .task-parent-indicator {
+            background-color: #fbbf24;
+            color: #92400e;
+            padding: var(--space-xs) var(--space-sm);
+            border-radius: var(--radius-sm);
+            font-size: var(--text-xs);
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-xs);
+        }
+
+        .task-child-indicator {
+            background-color: #a78bfa;
+            color: #5b21b6;
+            padding: var(--space-xs) var(--space-sm);
+            border-radius: var(--radius-sm);
+            font-size: var(--text-xs);
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-xs);
+        }
+
+        .dependency-path-indicator {
+            display: flex;
+            align-items: center;
+            gap: var(--space-xs);
+            margin-top: var(--space-xs);
+            padding: var(--space-xs);
+            background-color: #f8fafc;
+            border-radius: var(--radius-sm);
+            border: 1px solid #e2e8f0;
+        }
+
+        .dependency-path-step {
+            background-color: #e2e8f0;
+            color: #475569;
+            padding: 2px 6px;
+            border-radius: var(--radius-xs);
+            font-size: 10px;
+            font-weight: 500;
+        }
+
+        .dependency-path-arrow {
+            color: #94a3b8;
+            font-size: 12px;
+        }
+
+        /* Enhanced task views */
+        .task-expanded-details {
+            margin-top: var(--space-sm);
+            padding: var(--space-sm);
+            background-color: #f8fafc;
+            border-radius: var(--radius-sm);
+            border: 1px solid #e2e8f0;
+            display: none;
+            transition: all 0.3s ease;
+        }
+
+        .task-expanded-details.active {
+            display: block;
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .task-details-section {
+            margin-bottom: var(--space-sm);
+        }
+
+        .task-details-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .task-details-section-title {
+            font-size: var(--text-sm);
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: var(--space-xs);
+            display: flex;
+            align-items: center;
+            gap: var(--space-xs);
+        }
+
+        .task-dependency-chain-view {
+            background-color: white;
+            border-radius: var(--radius-sm);
+            padding: var(--space-sm);
+            border: 1px solid #e5e7eb;
+        }
+
+        .task-dependency-node {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            padding: var(--space-xs);
+            margin: var(--space-xs) 0;
+            background-color: #f9fafb;
+            border-radius: var(--radius-xs);
+            border-left: 3px solid transparent;
+        }
+
+        .task-dependency-node.completed {
+            border-left-color: #10b981;
+            background-color: #ecfdf5;
+        }
+
+        .task-dependency-node.pending {
+            border-left-color: #f59e0b;
+            background-color: #fffbeb;
+        }
+
+        .task-dependency-node.blocked {
+            border-left-color: #ef4444;
+            background-color: #fef2f2;
+        }
+
+        .task-dependency-node.current {
+            border-left-color: #3b82f6;
+            background-color: #eff6ff;
+            font-weight: 600;
+        }
+
+        .task-metadata-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--space-sm);
+            margin-top: var(--space-sm);
+        }
+
+        .task-metadata-item {
+            background-color: white;
+            padding: var(--space-sm);
+            border-radius: var(--radius-sm);
+            border: 1px solid #e5e7eb;
+        }
+
+        .task-metadata-label {
+            font-size: var(--text-xs);
+            font-weight: 600;
+            color: #6b7280;
+            margin-bottom: var(--space-xs);
+        }
+
+        .task-metadata-value {
+            font-size: var(--text-sm);
+            color: #374151;
+        }
+
+        .task-expand-toggle {
+            background: none;
+            border: none;
+            color: #6b7280;
+            cursor: pointer;
+            padding: var(--space-xs);
+            border-radius: var(--radius-xs);
+            transition: all 0.2s ease;
+        }
+
+        .task-expand-toggle:hover {
+            background-color: #f3f4f6;
+            color: #374151;
+        }
+
+        .task-expand-toggle.expanded {
+            transform: rotate(180deg);
+        }
+
+        /* Dependency relationship visual connectors */
+        .task-relationship-indicators {
+            position: relative;
+            margin-left: var(--space-md);
+            padding-left: var(--space-md);
+        }
+
+        .task-relationship-indicators::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: linear-gradient(to bottom, #3b82f6, #1e40af);
+            border-radius: 1px;
+        }
+
+        .task-dependency-connection {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: var(--space-xs);
+            margin: var(--space-xs) 0;
+            padding: var(--space-xs);
+            background-color: rgba(59, 130, 246, 0.05);
+            border-radius: var(--radius-xs);
+            border-left: 2px solid #3b82f6;
+        }
+
+        .task-dependency-connection::before {
+            content: '→';
+            color: #3b82f6;
+            font-weight: bold;
+            margin-right: var(--space-xs);
+        }
+
+        .task-dependent-connection {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: var(--space-xs);
+            margin: var(--space-xs) 0;
+            padding: var(--space-xs);
+            background-color: rgba(245, 158, 11, 0.05);
+            border-radius: var(--radius-xs);
+            border-left: 2px solid #f59e0b;
+        }
+
+        .task-dependent-connection::before {
+            content: '←';
+            color: #f59e0b;
+            font-weight: bold;
+            margin-right: var(--space-xs);
+        }
+
+        .task-relationship-summary {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            margin-top: var(--space-sm);
+            padding: var(--space-sm);
+            background-color: #f8fafc;
+            border-radius: var(--radius-sm);
+            border: 1px solid #e2e8f0;
+            font-size: var(--text-sm);
+            color: #6b7280;
+        }
+
+        .task-relationship-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            font-size: 10px;
+            font-weight: bold;
+            color: white;
+        }
+
+        .task-relationship-icon.dependencies {
+            background-color: #3b82f6;
+        }
+
+        .task-relationship-icon.dependents {
+            background-color: #f59e0b;
+        }
+
+        .task-relationship-icon.critical {
+            background-color: #ef4444;
+        }
+
         .task-category-tag {
             color: white;
             padding: var(--space-xs) var(--space-sm);
@@ -929,6 +1251,128 @@
         }
 
         /* ============================================
+           ⛓️ DEPENDENCY OVERVIEW STYLES
+           ============================================ */
+
+        .dependency-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--space-md);
+            margin-bottom: var(--space-lg);
+        }
+
+        .dependency-stat-card {
+            padding: var(--space-md);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            background: var(--color-bg-secondary);
+            text-align: center;
+        }
+
+        .dependency-stat-number {
+            font-size: var(--text-2xl);
+            font-weight: 700;
+            color: var(--color-primary);
+        }
+
+        .dependency-stat-label {
+            font-size: var(--text-sm);
+            color: var(--color-text-muted);
+            margin-top: var(--space-xs);
+        }
+
+        .dependency-chain-list {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-md);
+        }
+
+        .dependency-chain {
+            padding: var(--space-md);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            background: var(--color-bg-secondary);
+        }
+
+        .dependency-chain-title {
+            font-weight: 600;
+            color: var(--color-text);
+            margin-bottom: var(--space-sm);
+        }
+
+        .dependency-chain-path {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            flex-wrap: wrap;
+        }
+
+        .dependency-chain-task {
+            padding: var(--space-xs) var(--space-sm);
+            border-radius: var(--radius-sm);
+            font-size: var(--text-sm);
+            font-weight: 500;
+            background: var(--color-bg);
+            border: 1px solid var(--color-border);
+        }
+
+        .dependency-chain-task.completed {
+            background-color: #d1fae5;
+            color: #065f46;
+            border-color: #10b981;
+        }
+
+        .dependency-chain-task.pending {
+            background-color: #fef3c7;
+            color: #92400e;
+            border-color: #f59e0b;
+        }
+
+        .dependency-chain-task.blocked {
+            background-color: #fee2e2;
+            color: #dc2626;
+            border-color: #ef4444;
+        }
+
+        .dependency-chain-arrow {
+            color: var(--color-text-muted);
+            font-weight: bold;
+        }
+
+        .blocked-tasks-list {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-sm);
+        }
+
+        .blocked-task-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: var(--space-sm) var(--space-md);
+            border: 1px solid var(--color-border);
+            border-left: 4px solid #dc2626;
+            border-radius: var(--radius-md);
+            background: #fef2f2;
+        }
+
+        .blocked-task-info {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-xs);
+        }
+
+        .blocked-task-title {
+            font-weight: 600;
+            color: #dc2626;
+        }
+
+        .blocked-task-dependencies {
+            font-size: var(--text-sm);
+            color: var(--color-text-muted);
+        }
+
+        /* ============================================
            FILTER BAR STYLES
            ============================================ */
 
@@ -1128,6 +1572,19 @@
                             </select>
                         </div>
                         
+                        <!-- ⛓️ NEW: Dependency Filtering -->
+                        <div class="filter-group">
+                            <label for="filter-dependency" class="filter-label">Dependencies:</label>
+                            <select id="filter-dependency" class="filter-select">
+                                <option value="">All Tasks</option>
+                                <option value="blocked">🔒 Blocked Tasks</option>
+                                <option value="has-dependencies">⛓️ Has Dependencies</option>
+                                <option value="no-dependencies">🆓 No Dependencies</option>
+                                <option value="blocking-others">🚫 Blocking Others</option>
+                                <option value="referenced-by-others">📋 Referenced by Others</option>
+                            </select>
+                        </div>
+                        
                         <button type="button" class="btn btn-secondary btn-sm" onclick="taskManager.clearFilters()">
                             Clear Filters
                         </button>
@@ -1142,6 +1599,35 @@
                             <p style="color: var(--color-text-muted); font-size: var(--text-lg);">
                                 📝 No tasks yet. Add your first task above!
                             </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- ⛓️ Dependency Overview Section -->
+            <div id="dependency-overview" class="card" style="margin-top: var(--space-lg); display: none;">
+                <div class="card-header">
+                    <h2 class="card-title">⛓️ Task Dependencies Overview</h2>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="taskManager.toggleDependencyOverview()">
+                        <span id="dependency-overview-toggle">Show Overview</span>
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="dependency-stats" class="dependency-stats">
+                        <!-- Dependency statistics will be rendered here -->
+                    </div>
+                    
+                    <div id="dependency-chains" class="dependency-chains" style="margin-top: var(--space-lg);">
+                        <h3>Dependency Chains</h3>
+                        <div id="dependency-chain-list" class="dependency-chain-list">
+                            <!-- Dependency chains will be rendered here -->
+                        </div>
+                    </div>
+                    
+                    <div id="blocked-tasks-summary" class="blocked-tasks-summary" style="margin-top: var(--space-lg);">
+                        <h3>🔒 Blocked Tasks</h3>
+                        <div id="blocked-tasks-list" class="blocked-tasks-list">
+                            <!-- Blocked tasks will be rendered here -->
                         </div>
                     </div>
                 </div>
@@ -3553,16 +4039,32 @@
         TaskManager.prototype.createTaskElement = function(task) {
             const taskDiv = document.createElement('div');
             
-            // ⛓️ DEPENDENCY STATUS: Add blocked class for visual indication
+            // ⛓️ ENHANCED VISUAL INDICATORS: Build comprehensive class list
+            const dependents = this.findTaskDependents(task.id);
+            const hasDependencies = task.dependencies && task.dependencies.length > 0;
+            const hasDependents = dependents.length > 0;
+            const chainLevel = this.calculateChainLevel(task.id);
+            
+            // Check if task is ready to start (all dependencies completed)
+            const isReadyToStart = !task.isBlocked && hasDependencies && task.status !== 'completed';
+            
+            // Check if task is on critical path (has both dependencies and dependents)
+            const isCriticalPath = hasDependencies && hasDependents && chainLevel > 1;
+            
             const statusClasses = [
                 'task-item',
                 'fade-in',
                 task.status === 'completed' ? 'completed' : '',
-                task.isBlocked ? 'blocked' : ''
+                task.isBlocked ? 'blocked' : '',
+                hasDependencies ? 'task-has-dependencies' : '',
+                hasDependents ? 'task-has-dependents' : '',
+                isCriticalPath ? 'task-critical-path' : '',
+                isReadyToStart ? 'task-ready-to-start' : ''
             ].filter(cls => cls).join(' ');
             
             taskDiv.className = statusClasses;
             taskDiv.dataset.taskId = task.id;
+            taskDiv.dataset.chainLevel = chainLevel;
             
             // Add loading state for optimistic updates
             if (task.isOptimistic) {
@@ -3572,7 +4074,7 @@
             taskDiv.innerHTML = `
                 <div class="task-header">
                     <h3 class="task-title ${task.status === 'completed' ? 'completed' : ''}">
-                        ${task.isBlocked ? '🔒 ' : ''}${this.escapeHtml(task.title)}
+                        ${this.getTaskStatusIcon(task)}${this.escapeHtml(task.title)}
                     </h3>
                     <div class="task-actions">
                         <button 
@@ -3604,6 +4106,14 @@
                         >
                             🗑️
                         </button>
+                        <button 
+                            class="task-expand-toggle" 
+                            onclick="taskManager.toggleTaskDetails('${task.id}')"
+                            title="Show/hide task details"
+                            id="expand-toggle-${task.id}"
+                        >
+                            🔽
+                        </button>
                     </div>
                 </div>
                 
@@ -3628,6 +4138,8 @@
                     
                     ${this.getDependencyDisplayForTask(task)}
                     
+                    ${this.getTaskRelationshipSummary(task)}
+                    
                     ${task.dueDate ? `
                         <span title="Due date">
                             📅 ${this.formatDateTime(task.dueDate)}
@@ -3644,11 +4156,153 @@
                         </span>
                     ` : ''}
                 </div>
+                
+                <!-- Enhanced Task Details (initially hidden) -->
+                <div class="task-expanded-details" id="task-details-${task.id}">
+                    ${this.renderEnhancedTaskDetails(task)}
+                </div>
             `;
             
             return taskDiv;
         };
-        
+
+        /**
+         * 🔽 Toggle task details expanded view
+         */
+        TaskManager.prototype.toggleTaskDetails = function(taskId) {
+            const detailsElement = document.getElementById(`task-details-${taskId}`);
+            const toggleButton = document.getElementById(`expand-toggle-${taskId}`);
+            
+            if (!detailsElement || !toggleButton) return;
+            
+            const isExpanded = detailsElement.classList.contains('active');
+            
+            if (isExpanded) {
+                detailsElement.classList.remove('active');
+                toggleButton.classList.remove('expanded');
+                toggleButton.innerHTML = '🔽';
+                toggleButton.title = 'Show task details';
+            } else {
+                detailsElement.classList.add('active');
+                toggleButton.classList.add('expanded');
+                toggleButton.innerHTML = '🔼';
+                toggleButton.title = 'Hide task details';
+                
+                // Refresh the details content in case dependencies have changed
+                const task = this.tasks.find(t => t.id === taskId);
+                if (task) {
+                    detailsElement.innerHTML = this.renderEnhancedTaskDetails(task);
+                }
+            }
+        };
+
+        /**
+         * 🔍 Render enhanced task details view
+         */
+        TaskManager.prototype.renderEnhancedTaskDetails = function(task) {
+            const dependents = this.findTaskDependents(task.id);
+            const dependencyChain = this.buildDependencyPath(task.id);
+            const chainLevel = this.calculateChainLevel(task.id);
+            
+            let html = '';
+            
+            // Dependency Chain Visualization
+            if (task.dependencies && task.dependencies.length > 0) {
+                html += `
+                    <div class="task-details-section">
+                        <div class="task-details-section-title">
+                            ⛓️ Dependency Chain
+                        </div>
+                        <div class="task-dependency-chain-view">
+                            ${this.renderDependencyChainView(task)}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Task Impact (who depends on this task)
+            if (dependents.length > 0) {
+                html += `
+                    <div class="task-details-section">
+                        <div class="task-details-section-title">
+                            👥 Tasks Waiting for This
+                        </div>
+                        <div class="task-dependency-chain-view">
+                            ${dependents.map(dep => `
+                                <div class="task-dependency-node ${dep.status}">
+                                    <span>${this.getTaskStatusIcon(dep)}</span>
+                                    <span>${this.escapeHtml(dep.title)}</span>
+                                    <span style="margin-left: auto; font-size: var(--text-xs); color: #6b7280;">
+                                        ${dep.status === 'completed' ? 'Completed' : 'Waiting'}
+                                    </span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Enhanced Metadata
+            html += `
+                <div class="task-details-section">
+                    <div class="task-details-section-title">
+                        📊 Task Details
+                    </div>
+                    <div class="task-metadata-grid">
+                        <div class="task-metadata-item">
+                            <div class="task-metadata-label">Chain Depth</div>
+                            <div class="task-metadata-value">${chainLevel} level${chainLevel !== 1 ? 's' : ''}</div>
+                        </div>
+                        <div class="task-metadata-item">
+                            <div class="task-metadata-label">Prerequisites</div>
+                            <div class="task-metadata-value">${task.dependencies ? task.dependencies.length : 0}</div>
+                        </div>
+                        <div class="task-metadata-item">
+                            <div class="task-metadata-label">Dependents</div>
+                            <div class="task-metadata-value">${dependents.length}</div>
+                        </div>
+                        <div class="task-metadata-item">
+                            <div class="task-metadata-label">Status</div>
+                            <div class="task-metadata-value">
+                                ${task.status === 'completed' ? '✅ Completed' : 
+                                  task.isBlocked ? '🔒 Blocked' : '📋 Available'}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            return html;
+        };
+
+        /**
+         * 🔗 Render dependency chain view for enhanced details
+         */
+        TaskManager.prototype.renderDependencyChainView = function(task) {
+            if (!task.dependencies || task.dependencies.length === 0) {
+                return '<p style="color: #6b7280; text-align: center;">No dependencies</p>';
+            }
+            
+            return task.dependencies.map(dep => {
+                const depTask = this.tasks.find(t => t.id === dep.id);
+                if (!depTask) return '';
+                
+                const status = depTask.status === 'completed' ? 'completed' : 
+                              depTask.isBlocked ? 'blocked' : 'pending';
+                
+                return `
+                    <div class="task-dependency-node ${status}">
+                        <span>${this.getTaskStatusIcon(depTask)}</span>
+                        <span>${this.escapeHtml(depTask.title)}</span>
+                        <span style="margin-left: auto; font-size: var(--text-xs); color: #6b7280;">
+                            ${depTask.status === 'completed' ? 'Ready' : 
+                              depTask.isBlocked ? 'Blocked' : 'In Progress'}
+                        </span>
+                    </div>
+                `;
+            }).join('');
+        };
+
         /**
          * Update empty state visibility
          */
@@ -4975,6 +5629,233 @@
             }
         };
 
+        /* ============================================
+           ⛓️ DEPENDENCY OVERVIEW & VISUALIZATION
+           ============================================ */
+
+        /**
+         * Toggle dependency overview visibility
+         */
+        TaskManager.prototype.toggleDependencyOverview = function() {
+            const overview = document.getElementById('dependency-overview');
+            const toggleButton = document.getElementById('dependency-overview-toggle');
+            
+            if (!overview || !toggleButton) return;
+            
+            const isVisible = overview.style.display !== 'none';
+            
+            if (isVisible) {
+                overview.style.display = 'none';
+                toggleButton.textContent = 'Show Overview';
+            } else {
+                overview.style.display = 'block';
+                toggleButton.textContent = 'Hide Overview';
+                this.renderDependencyOverview();
+            }
+        };
+
+        /**
+         * Render complete dependency overview
+         */
+        TaskManager.prototype.renderDependencyOverview = function() {
+            this.renderDependencyStats();
+            this.renderDependencyChains();
+            this.renderBlockedTasksSummary();
+        };
+
+        /**
+         * Render dependency statistics
+         */
+        TaskManager.prototype.renderDependencyStats = function() {
+            const statsContainer = document.getElementById('dependency-stats');
+            if (!statsContainer) return;
+            
+            const stats = this.calculateDependencyStats();
+            
+            statsContainer.innerHTML = `
+                <div class="dependency-stat-card">
+                    <div class="dependency-stat-number">${stats.totalTasks}</div>
+                    <div class="dependency-stat-label">Total Tasks</div>
+                </div>
+                <div class="dependency-stat-card">
+                    <div class="dependency-stat-number">${stats.tasksWithDependencies}</div>
+                    <div class="dependency-stat-label">Have Dependencies</div>
+                </div>
+                <div class="dependency-stat-card">
+                    <div class="dependency-stat-number">${stats.blockedTasks}</div>
+                    <div class="dependency-stat-label">Currently Blocked</div>
+                </div>
+                <div class="dependency-stat-card">
+                    <div class="dependency-stat-number">${stats.blockingTasks}</div>
+                    <div class="dependency-stat-label">Blocking Others</div>
+                </div>
+                <div class="dependency-stat-card">
+                    <div class="dependency-stat-number">${stats.dependencyChains}</div>
+                    <div class="dependency-stat-label">Dependency Chains</div>
+                </div>
+            `;
+        };
+
+        /**
+         * Calculate dependency statistics
+         */
+        TaskManager.prototype.calculateDependencyStats = function() {
+            const stats = {
+                totalTasks: this.tasks.length,
+                tasksWithDependencies: 0,
+                blockedTasks: 0,
+                blockingTasks: 0,
+                dependencyChains: 0
+            };
+            
+            this.tasks.forEach(task => {
+                if (task.dependencies && task.dependencies.length > 0) {
+                    stats.tasksWithDependencies++;
+                }
+                
+                if (task.isBlocked) {
+                    stats.blockedTasks++;
+                }
+                
+                if (this.isTaskBlockingOthers(task.id)) {
+                    stats.blockingTasks++;
+                }
+            });
+            
+            // Calculate dependency chains (simplified count)
+            const chains = this.findDependencyChains();
+            stats.dependencyChains = chains.length;
+            
+            return stats;
+        };
+
+        /**
+         * Find dependency chains in the task list
+         */
+        TaskManager.prototype.findDependencyChains = function() {
+            const chains = [];
+            const visited = new Set();
+            
+            this.tasks.forEach(task => {
+                if (!visited.has(task.id) && task.dependencies && task.dependencies.length > 0) {
+                    const chain = this.traceDependencyChain(task.id, new Set());
+                    if (chain.length > 1) {
+                        chains.push(chain);
+                        chain.forEach(taskId => visited.add(taskId));
+                    }
+                }
+            });
+            
+            return chains;
+        };
+
+        /**
+         * Trace a dependency chain starting from a task
+         */
+        TaskManager.prototype.traceDependencyChain = function(taskId, visited) {
+            if (visited.has(taskId)) {
+                return []; // Circular dependency detected, stop tracing
+            }
+            
+            visited.add(taskId);
+            const task = this.tasks.find(t => t.id === taskId);
+            
+            if (!task || !task.dependencies || task.dependencies.length === 0) {
+                return [taskId];
+            }
+            
+            // For simplicity, follow the first blocking dependency
+            const blockingDep = task.dependencies.find(dep => dep.dependencyType === 'blocking');
+            if (blockingDep) {
+                const chain = this.traceDependencyChain(blockingDep.id, new Set([...visited]));
+                return [...chain, taskId];
+            }
+            
+            return [taskId];
+        };
+
+        /**
+         * Render dependency chains
+         */
+        TaskManager.prototype.renderDependencyChains = function() {
+            const chainsContainer = document.getElementById('dependency-chain-list');
+            if (!chainsContainer) return;
+            
+            const chains = this.findDependencyChains();
+            
+            if (chains.length === 0) {
+                chainsContainer.innerHTML = '<p style="color: var(--color-text-muted);">No dependency chains found.</p>';
+                return;
+            }
+            
+            chainsContainer.innerHTML = '';
+            
+            chains.forEach((chain, index) => {
+                const chainElement = document.createElement('div');
+                chainElement.className = 'dependency-chain';
+                
+                const chainTasks = chain.map(taskId => this.tasks.find(t => t.id === taskId)).filter(Boolean);
+                
+                chainElement.innerHTML = `
+                    <div class="dependency-chain-title">Chain ${index + 1} (${chainTasks.length} tasks)</div>
+                    <div class="dependency-chain-path">
+                        ${chainTasks.map((task, i) => `
+                            <span class="dependency-chain-task ${task.status} ${task.isBlocked ? 'blocked' : ''}">
+                                ${this.escapeHtml(task.title)}
+                            </span>
+                            ${i < chainTasks.length - 1 ? '<span class="dependency-chain-arrow">→</span>' : ''}
+                        `).join('')}
+                    </div>
+                `;
+                
+                chainsContainer.appendChild(chainElement);
+            });
+        };
+
+        /**
+         * Render blocked tasks summary
+         */
+        TaskManager.prototype.renderBlockedTasksSummary = function() {
+            const blockedContainer = document.getElementById('blocked-tasks-list');
+            if (!blockedContainer) return;
+            
+            const blockedTasks = this.tasks.filter(task => task.isBlocked);
+            
+            if (blockedTasks.length === 0) {
+                blockedContainer.innerHTML = '<p style="color: var(--color-text-muted);">No tasks are currently blocked! 🎉</p>';
+                return;
+            }
+            
+            blockedContainer.innerHTML = '';
+            
+            blockedTasks.forEach(task => {
+                const blockedElement = document.createElement('div');
+                blockedElement.className = 'blocked-task-item';
+                
+                const blockingDeps = task.dependencies.filter(dep => 
+                    dep.status !== 'completed' && dep.dependencyType === 'blocking'
+                );
+                
+                blockedElement.innerHTML = `
+                    <div class="blocked-task-info">
+                        <div class="blocked-task-title">${this.escapeHtml(task.title)}</div>
+                        <div class="blocked-task-dependencies">
+                            Blocked by: ${blockingDeps.map(dep => dep.title).join(', ')}
+                        </div>
+                    </div>
+                    <button 
+                        class="btn btn-sm btn-secondary" 
+                        onclick="taskManager.openDependencyManager('${task.id}')"
+                        title="Manage dependencies"
+                    >
+                        ⛓️ Manage
+                    </button>
+                `;
+                
+                blockedContainer.appendChild(blockedElement);
+            });
+        };
+
         /**
          * Setup color picker
          */
@@ -5357,33 +6238,63 @@
         };
 
         /**
-         * ⛓️ Get dependency display for task
+         * ⛓️ Get dependency display for task (Enhanced with visual indicators)
          */
         TaskManager.prototype.getDependencyDisplayForTask = function(task) {
             let dependencyHtml = '';
             
-            // Show dependency count if task has dependencies
+            // Enhanced dependency indicators with progress bars and chain levels
             if (task.dependencies && task.dependencies.length > 0) {
                 const completedDeps = task.dependencies.filter(dep => dep.status === 'completed').length;
                 const totalDeps = task.dependencies.length;
+                const progressPercent = (completedDeps / totalDeps) * 100;
+                
+                // Calculate dependency chain depth
+                const chainLevel = this.calculateChainLevel(task.id);
                 
                 dependencyHtml += `
-                    <span class="task-dependency-badge" title="Dependencies: ${completedDeps}/${totalDeps} completed">
-                        ⛓️ ${completedDeps}/${totalDeps}
+                    <div class="task-dependency-indicator">
+                        ${chainLevel > 0 ? `<span class="task-dependency-chain-level" title="Chain depth: ${chainLevel}">${chainLevel}</span>` : ''}
+                        <span class="task-dependency-progress" title="Dependencies: ${completedDeps}/${totalDeps} completed">
+                            <span class="task-dependency-progress-bar" style="width: ${progressPercent}%"></span>
+                        </span>
+                        <span style="font-size: var(--text-xs); color: #6b7280;">
+                            ⛓️ ${completedDeps}/${totalDeps}
+                        </span>
+                    </div>
+                `;
+                
+                // Show parent indicator if this task has dependents
+                const dependents = this.findTaskDependents(task.id);
+                if (dependents.length > 0) {
+                    dependencyHtml += `
+                        <span class="task-parent-indicator" title="This task blocks ${dependents.length} other task(s)">
+                            👥 ${dependents.length} dependent${dependents.length > 1 ? 's' : ''}
+                        </span>
+                    `;
+                }
+            }
+            
+            // Show child indicator if this task depends on others
+            if (task.dependencies && task.dependencies.length > 0) {
+                dependencyHtml += `
+                    <span class="task-child-indicator" title="This task depends on ${task.dependencies.length} other task(s)">
+                        📎 ${task.dependencies.length} prerequisite${task.dependencies.length > 1 ? 's' : ''}
                     </span>
                 `;
             }
             
             // Show blocked indicator if task is blocked
             if (task.isBlocked) {
+                const blockingTasks = task.dependencies.filter(dep => dep.status !== 'completed');
                 dependencyHtml += `
-                    <span class="task-blocked-badge" title="This task is blocked by unfinished dependencies">
-                        🔒 Blocked
+                    <span class="task-blocked-badge" title="Blocked by ${blockingTasks.length} unfinished task(s)">
+                        🔒 Blocked by ${blockingTasks.length}
                     </span>
                 `;
             }
             
-            // Show dependency type if task has dependencies
+            // Show dependency type with enhanced styling
             if (task.dependencyType && task.dependencies && task.dependencies.length > 0) {
                 const typeIcon = task.dependencyType === 'blocking' ? '🚫' : '📋';
                 const typeLabel = task.dependencyType === 'blocking' ? 'Blocking' : 'Reference';
@@ -5395,7 +6306,190 @@
                 `;
             }
             
+            // Show dependency path for complex chains
+            if (task.dependencies && task.dependencies.length > 0) {
+                const dependencyPath = this.buildDependencyPath(task.id);
+                if (dependencyPath.length > 1) {
+                    dependencyHtml += this.renderDependencyPathIndicator(dependencyPath);
+                }
+            }
+            
             return dependencyHtml;
+        };
+
+        /**
+         * ⛓️ Calculate dependency chain level for enhanced visual indicators
+         */
+        TaskManager.prototype.calculateChainLevel = function(taskId, visited = new Set()) {
+            if (visited.has(taskId)) {
+                return 0; // Avoid circular dependencies
+            }
+            
+            visited.add(taskId);
+            const task = this.tasks.find(t => t.id === taskId);
+            
+            if (!task || !task.dependencies || task.dependencies.length === 0) {
+                return 0;
+            }
+            
+            let maxLevel = 0;
+            for (const dep of task.dependencies) {
+                const depLevel = this.calculateChainLevel(dep.id, new Set(visited));
+                maxLevel = Math.max(maxLevel, depLevel + 1);
+            }
+            
+            return maxLevel;
+        };
+
+        /**
+         * ⛓️ Find tasks that depend on the given task (dependents)
+         */
+        TaskManager.prototype.findTaskDependents = function(taskId) {
+            return this.tasks.filter(task => 
+                task.dependencies && 
+                task.dependencies.some(dep => dep.id === taskId)
+            );
+        };
+
+        /**
+         * ⛓️ Build dependency path for complex chains
+         */
+        TaskManager.prototype.buildDependencyPath = function(taskId, visited = new Set()) {
+            if (visited.has(taskId)) {
+                return []; // Avoid circular dependencies
+            }
+            
+            visited.add(taskId);
+            const task = this.tasks.find(t => t.id === taskId);
+            
+            if (!task) return [];
+            
+            const path = [{ id: taskId, title: task.title }];
+            
+            // Find the longest dependency chain
+            if (task.dependencies && task.dependencies.length > 0) {
+                let longestPath = [];
+                for (const dep of task.dependencies) {
+                    const depPath = this.buildDependencyPath(dep.id, new Set(visited));
+                    if (depPath.length > longestPath.length) {
+                        longestPath = depPath;
+                    }
+                }
+                return [...longestPath, ...path];
+            }
+            
+            return path;
+        };
+
+        /**
+         * ⛓️ Get task relationship summary with visual indicators
+         */
+        TaskManager.prototype.getTaskRelationshipSummary = function(task) {
+            const dependents = this.findTaskDependents(task.id);
+            const hasDependencies = task.dependencies && task.dependencies.length > 0;
+            const hasDependents = dependents.length > 0;
+            const chainLevel = this.calculateChainLevel(task.id);
+            
+            // Skip if no relationships
+            if (!hasDependencies && !hasDependents) {
+                return '';
+            }
+            
+            let summary = [];
+            
+            // Add dependency connections if present
+            if (hasDependencies) {
+                const completedDeps = task.dependencies.filter(dep => dep.status === 'completed').length;
+                summary.push(`
+                    <span class="task-relationship-icon dependencies" title="Prerequisites: ${completedDeps}/${task.dependencies.length} completed">
+                        ${task.dependencies.length}
+                    </span>
+                `);
+            }
+            
+            // Add dependent connections if present  
+            if (hasDependents) {
+                summary.push(`
+                    <span class="task-relationship-icon dependents" title="${dependents.length} task(s) depend on this">
+                        ${dependents.length}
+                    </span>
+                `);
+            }
+            
+            // Add critical path indicator
+            if (hasDependencies && hasDependents && chainLevel > 1) {
+                summary.push(`
+                    <span class="task-relationship-icon critical" title="Critical path - depth ${chainLevel}">
+                        !
+                    </span>
+                `);
+            }
+            
+            if (summary.length === 0) return '';
+            
+            return `
+                <div class="task-relationship-summary">
+                    <span style="font-size: var(--text-xs); color: #6b7280;">Connections:</span>
+                    ${summary.join('')}
+                </div>
+            `;
+        };
+
+        /**
+         * ⛓️ Get enhanced task status icon with dependency indicators
+         */
+        TaskManager.prototype.getTaskStatusIcon = function(task) {
+            let icon = '';
+            
+            // Primary status icon
+            if (task.status === 'completed') {
+                icon += '✅ ';
+            } else if (task.isBlocked) {
+                icon += '🔒 ';
+            } else {
+                const dependents = this.findTaskDependents(task.id);
+                const hasDependencies = task.dependencies && task.dependencies.length > 0;
+                const hasDependents = dependents.length > 0;
+                
+                // Ready to start indicator
+                if (!task.isBlocked && hasDependencies) {
+                    icon += '🟢 '; // Ready to start
+                } else if (hasDependents && !hasDependencies) {
+                    icon += '🔥 '; // Critical starting point
+                } else if (hasDependencies && hasDependents) {
+                    icon += '⚡ '; // Critical path
+                } else {
+                    icon += '📋 '; // Standard task
+                }
+            }
+            
+            return icon;
+        };
+
+        /**
+         * ⛓️ Render dependency path indicator for complex chains
+         */
+        TaskManager.prototype.renderDependencyPathIndicator = function(dependencyPath) {
+            if (dependencyPath.length <= 1) return '';
+            
+            const pathSteps = dependencyPath.map((step, index) => {
+                const isLast = index === dependencyPath.length - 1;
+                return `
+                    <span class="dependency-path-step" title="${this.escapeHtml(step.title)}">
+                        ${index + 1}
+                    </span>
+                    ${!isLast ? '<span class="dependency-path-arrow">→</span>' : ''}
+                `;
+            }).join('');
+            
+            return `
+                <div class="dependency-path-indicator" title="Dependency chain path">
+                    <span style="font-size: var(--text-xs); color: #6b7280; margin-right: var(--space-xs);">
+                        🔗 Path:
+                    </span>
+                    ${pathSteps}
+                </div>
+            `;
         };
 
         /* ============================================
@@ -5409,7 +6503,8 @@
             this.currentFilters = {
                 category: '',
                 status: '',
-                priority: ''
+                priority: '',
+                dependency: '' // ⛓️ NEW: Dependency filter
             };
             
             this.setupFilterEventListeners();
@@ -5423,6 +6518,7 @@
             const categoryFilter = document.getElementById('filter-category');
             const statusFilter = document.getElementById('filter-status');
             const priorityFilter = document.getElementById('filter-priority');
+            const dependencyFilter = document.getElementById('filter-dependency'); // ⛓️ NEW
             
             if (categoryFilter) {
                 categoryFilter.addEventListener('change', (e) => {
@@ -5441,6 +6537,14 @@
             if (priorityFilter) {
                 priorityFilter.addEventListener('change', (e) => {
                     this.currentFilters.priority = e.target.value;
+                    this.applyFilters();
+                });
+            }
+            
+            // ⛓️ NEW: Dependency filter event listener
+            if (dependencyFilter) {
+                dependencyFilter.addEventListener('change', (e) => {
+                    this.currentFilters.dependency = e.target.value;
                     this.applyFilters();
                 });
             }
@@ -5516,7 +6620,65 @@
                 );
             }
             
+            // ⛓️ NEW: Apply dependency filter
+            if (this.currentFilters.dependency) {
+                switch (this.currentFilters.dependency) {
+                    case 'blocked':
+                        // Show only tasks that are blocked by unfinished dependencies
+                        filteredTasks = filteredTasks.filter(task => task.isBlocked);
+                        break;
+                        
+                    case 'has-dependencies':
+                        // Show only tasks that have dependencies
+                        filteredTasks = filteredTasks.filter(task => 
+                            task.dependencies && task.dependencies.length > 0
+                        );
+                        break;
+                        
+                    case 'no-dependencies':
+                        // Show only tasks that have no dependencies
+                        filteredTasks = filteredTasks.filter(task => 
+                            !task.dependencies || task.dependencies.length === 0
+                        );
+                        break;
+                        
+                    case 'blocking-others':
+                        // Show only tasks that are blocking other tasks
+                        filteredTasks = filteredTasks.filter(task => 
+                            this.isTaskBlockingOthers(task.id)
+                        );
+                        break;
+                        
+                    case 'referenced-by-others':
+                        // Show only tasks that are referenced by other tasks
+                        filteredTasks = filteredTasks.filter(task => 
+                            this.isTaskReferencedByOthers(task.id)
+                        );
+                        break;
+                }
+            }
+            
             return filteredTasks;
+        };
+
+        /**
+         * ⛓️ Check if a task is blocking other tasks
+         */
+        TaskManager.prototype.isTaskBlockingOthers = function(taskId) {
+            return this.tasks.some(task => 
+                task.dependencies && task.dependencies.some(dep => 
+                    dep.id === taskId && dep.dependencyType === 'blocking'
+                )
+            );
+        };
+
+        /**
+         * ⛓️ Check if a task is referenced by other tasks (any dependency type)
+         */
+        TaskManager.prototype.isTaskReferencedByOthers = function(taskId) {
+            return this.tasks.some(task => 
+                task.dependencies && task.dependencies.some(dep => dep.id === taskId)
+            );
         };
 
         /**
@@ -5592,17 +6754,20 @@
             this.currentFilters = {
                 category: '',
                 status: '',
-                priority: ''
+                priority: '',
+                dependency: '' // ⛓️ NEW: Reset dependency filter
             };
             
             // Reset filter UI
             const categoryFilter = document.getElementById('filter-category');
             const statusFilter = document.getElementById('filter-status');
             const priorityFilter = document.getElementById('filter-priority');
+            const dependencyFilter = document.getElementById('filter-dependency'); // ⛓️ NEW
             
             if (categoryFilter) categoryFilter.value = '';
             if (statusFilter) statusFilter.value = '';
             if (priorityFilter) priorityFilter.value = '';
+            if (dependencyFilter) dependencyFilter.value = ''; // ⛓️ NEW
             
             // Re-render all tasks
             this.renderTasks();
