@@ -455,7 +455,73 @@
             background-color: #451a03;
             color: #ffffff;
         }
-        
+
+        /* ============================================
+           ⛓️ DEPENDENCY STYLES
+           ============================================ */
+
+        /* Blocked task styling */
+        .task-item.blocked {
+            border-left: 4px solid #dc2626;
+            background-color: #fef2f2;
+        }
+
+        .task-item.blocked .task-title {
+            color: #dc2626;
+        }
+
+        .task-item.blocked .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Dependency warning banner */
+        .dependency-warning {
+            background-color: #fef3c7;
+            border: 1px solid #d97706;
+            border-radius: var(--radius-sm);
+            padding: var(--space-sm);
+            margin: var(--space-sm) 0;
+            font-size: var(--text-sm);
+            color: #92400e;
+        }
+
+        /* Dependency badges in task meta */
+        .task-dependency-badge {
+            background-color: #dbeafe;
+            color: #1e40af;
+            padding: var(--space-xs) var(--space-sm);
+            border-radius: var(--radius-sm);
+            font-size: var(--text-xs);
+            font-weight: 500;
+        }
+
+        .task-blocked-badge {
+            background-color: #fee2e2;
+            color: #dc2626;
+            padding: var(--space-xs) var(--space-sm);
+            border-radius: var(--radius-sm);
+            font-size: var(--text-xs);
+            font-weight: 500;
+        }
+
+        .task-dependency-type {
+            background-color: #f3f4f6;
+            color: #374151;
+            padding: var(--space-xs) var(--space-sm);
+            border-radius: var(--radius-sm);
+            font-size: var(--text-xs);
+            font-weight: 500;
+        }
+
+        .task-category-tag {
+            color: white;
+            padding: var(--space-xs) var(--space-sm);
+            border-radius: var(--radius-sm);
+            font-size: var(--text-xs);
+            font-weight: 500;
+        }
+
         /* Utilities */
         .hidden {
             display: none;
@@ -737,6 +803,129 @@
 
         .modal-body {
             padding: var(--space-lg);
+        }
+
+        /* ============================================
+           ⛓️ DEPENDENCY MODAL STYLES
+           ============================================ */
+
+        .dependency-list {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-md);
+        }
+
+        .dependency-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: var(--space-md);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            background: var(--color-bg-secondary);
+        }
+
+        .dependency-item.blocking {
+            border-left: 4px solid #dc2626;
+            background-color: #fef2f2;
+        }
+
+        .dependency-item.reference {
+            border-left: 4px solid #2563eb;
+            background-color: #f0f9ff;
+        }
+
+        .dependency-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-xs);
+        }
+
+        .dependency-task-title {
+            font-weight: 600;
+            color: var(--color-text);
+        }
+
+        .dependency-task-status {
+            font-size: var(--text-sm);
+            color: var(--color-text-muted);
+        }
+
+        .dependency-type-badge {
+            padding: var(--space-xs) var(--space-sm);
+            border-radius: var(--radius-sm);
+            font-size: var(--text-xs);
+            font-weight: 500;
+        }
+
+        .dependency-type-badge.blocking {
+            background-color: #fee2e2;
+            color: #dc2626;
+        }
+
+        .dependency-type-badge.reference {
+            background-color: #dbeafe;
+            color: #2563eb;
+        }
+
+        .radio-label {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: var(--space-xs);
+            padding: var(--space-md);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            flex: 1;
+        }
+
+        .radio-label:hover {
+            background-color: var(--color-bg-secondary);
+            border-color: var(--color-primary);
+        }
+
+        .radio-label input[type="radio"] {
+            margin-right: var(--space-xs);
+        }
+
+        .radio-label small {
+            color: var(--color-text-muted);
+            font-size: var(--text-xs);
+        }
+
+        .task-info-card {
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+            padding: var(--space-md);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            background: var(--color-bg-secondary);
+        }
+
+        .task-info-card .task-title {
+            font-weight: 600;
+            font-size: var(--text-lg);
+        }
+
+        .task-info-card .task-status {
+            padding: var(--space-xs) var(--space-sm);
+            border-radius: var(--radius-sm);
+            font-size: var(--text-sm);
+            font-weight: 500;
+        }
+
+        .task-info-card .task-status.completed {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+
+        .task-info-card .task-status.pending {
+            background-color: #fef3c7;
+            color: #92400e;
         }
 
         /* ============================================
@@ -1030,6 +1219,79 @@
                         <div class="card-body">
                             <div id="category-list" class="category-list">
                                 <!-- Categories will be rendered here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dependency Management Modal -->
+        <div id="dependency-modal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title">⛓️ Manage Dependencies</h2>
+                    <button type="button" class="modal-close" onclick="taskManager.closeDependencyManager()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <!-- Task Info -->
+                    <div class="card" style="margin-bottom: var(--space-lg);">
+                        <div class="card-header">
+                            <h3 class="card-title">Task Information</h3>
+                        </div>
+                        <div class="card-body">
+                            <div id="dependency-task-info">
+                                <!-- Current task info will be rendered here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Add Dependencies -->
+                    <div class="card" style="margin-bottom: var(--space-lg);">
+                        <div class="card-header">
+                            <h3 class="card-title">Add Dependencies</h3>
+                        </div>
+                        <div class="card-body">
+                            <form id="dependency-form">
+                                <div class="form-group">
+                                    <label for="dependency-task" class="form-label">Select Task to Depend On *</label>
+                                    <select id="dependency-task" class="form-input" required>
+                                        <option value="">Choose a task...</option>
+                                        <!-- Available tasks will be populated here -->
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label class="form-label">Dependency Type</label>
+                                    <div style="display: flex; gap: var(--space-md);">
+                                        <label class="radio-label">
+                                            <input type="radio" name="dependency-type" value="blocking" checked>
+                                            <span>🚫 Blocking</span>
+                                            <small>Task cannot be completed until dependency is finished</small>
+                                        </label>
+                                        <label class="radio-label">
+                                            <input type="radio" name="dependency-type" value="reference">
+                                            <span>📋 Reference</span>
+                                            <small>Task references another task but is not blocked by it</small>
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <button type="submit" class="btn btn-primary">
+                                    Add Dependency
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    
+                    <!-- Current Dependencies List -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Current Dependencies</h3>
+                        </div>
+                        <div class="card-body">
+                            <div id="dependency-list" class="dependency-list">
+                                <!-- Dependencies will be rendered here -->
                             </div>
                         </div>
                     </div>
@@ -3016,6 +3278,18 @@
                     
                     const newStatus = task.status === 'completed' ? 'pending' : 'completed';
                     
+                    // ⛓️ DEPENDENCY VALIDATION: Check if task can be completed
+                    if (newStatus === 'completed') {
+                        const canComplete = await this.database.canComplete(taskId);
+                        if (!canComplete) {
+                            const blockedByTasks = await this.getBlockedByTasks(taskId);
+                            const taskTitles = blockedByTasks.map(t => `"${t.title}"`).join(', ');
+                            
+                            this.showError(`⛓️ Cannot complete task "${task.title}" because it depends on unfinished tasks: ${taskTitles}`);
+                            return;
+                        }
+                    }
+                    
                     // Optimistic update
                     task.status = newStatus;
                     task.modifiedAt = new Date().toISOString();
@@ -3030,6 +3304,9 @@
                     // Persist to database
                     await this.database.updateTask(taskId, { status: newStatus });
                     
+                    // ⛓️ DEPENDENCY CASCADE: Update blocked status of dependent tasks
+                    await this.updateDependentTasksStatus(taskId, newStatus);
+                    
                     // Broadcast task completion to other tabs
                     this.syncManager.syncTaskComplete(taskId, newStatus === 'completed');
                     
@@ -3040,6 +3317,52 @@
                     // Reload tasks to restore correct state
                     await this.loadTasks();
                     this.showError('Failed to update task');
+                }
+            }
+            
+            /**
+             * ⛓️ Get tasks that are blocking this task from being completed
+             */
+            async getBlockedByTasks(taskId) {
+                try {
+                    const dependencies = await this.database.getDependencies(taskId);
+                    const incompleteBlocking = dependencies.filter(dep => 
+                        dep.status !== 'completed' && dep.dependencyType === 'blocking'
+                    );
+                    return incompleteBlocking;
+                } catch (error) {
+                    console.error('❌ Failed to get blocking tasks:', error);
+                    return [];
+                }
+            }
+            
+            /**
+             * ⛓️ Update the blocked status of tasks that depend on this task
+             */
+            async updateDependentTasksStatus(taskId, newStatus) {
+                try {
+                    // Get all tasks that depend on this task
+                    const dependentTasks = await this.database.getDependentTasks(taskId);
+                    
+                    for (const dependentTask of dependentTasks) {
+                        // Update blocked status for each dependent task
+                        const isBlocked = await this.database.updateBlockedStatus(dependentTask.id);
+                        
+                        // Update in-memory task if it exists
+                        const memoryTask = this.tasks.find(t => t.id === dependentTask.id);
+                        if (memoryTask) {
+                            memoryTask.isBlocked = isBlocked;
+                            memoryTask.modifiedAt = new Date().toISOString();
+                        }
+                    }
+                    
+                    // Re-render to show updated blocked status
+                    this.render();
+                    
+                    console.log(`⛓️ Updated ${dependentTasks.length} dependent tasks after ${newStatus} of task ${taskId}`);
+                    
+                } catch (error) {
+                    console.error('❌ Failed to update dependent tasks:', error);
                 }
             }
             
@@ -3115,13 +3438,52 @@
                     }
                     
                     this.tasks = await this.database.getAllTasks();
-                    console.log(`📋 Loaded ${this.tasks.length} tasks`);
+                    
+                    // ⛓️ DEPENDENCY STATUS CALCULATION: Enhance tasks with dependency information
+                    await this.calculateDependencyStatus();
+                    
+                    console.log(`📋 Loaded ${this.tasks.length} tasks with dependency status`);
                 } catch (error) {
                     console.error('❌ Failed to load tasks:', error);
                     this.showError('Failed to load tasks. Please refresh the page.');
                     this.tasks = [];
                 } finally {
                     this.setLoading(false);
+                }
+            }
+            
+            /**
+             * ⛓️ Calculate and cache dependency status for all tasks
+             */
+            async calculateDependencyStatus() {
+                try {
+                    const dependencyPromises = this.tasks.map(async (task) => {
+                        try {
+                            // Load dependencies for this task
+                            task.dependencies = await this.database.getDependencies(task.id);
+                            
+                            // Calculate blocked status
+                            task.isBlocked = await this.database.updateBlockedStatus(task.id);
+                            
+                            // Set dependency type from first dependency (all should be same type)
+                            if (task.dependencies.length > 0) {
+                                task.dependencyType = task.dependencies[0].dependencyType;
+                            }
+                            
+                            return task;
+                        } catch (error) {
+                            console.warn(`⚠️ Failed to load dependencies for task ${task.id}:`, error);
+                            task.dependencies = [];
+                            task.isBlocked = false;
+                            return task;
+                        }
+                    });
+                    
+                    await Promise.all(dependencyPromises);
+                    
+                    console.log(`⛓️ Calculated dependency status for ${this.tasks.length} tasks`);
+                } catch (error) {
+                    console.error('❌ Failed to calculate dependency status:', error);
                 }
             }
         }
@@ -3190,7 +3552,16 @@
          */
         TaskManager.prototype.createTaskElement = function(task) {
             const taskDiv = document.createElement('div');
-            taskDiv.className = `task-item fade-in ${task.status === 'completed' ? 'completed' : ''}`;
+            
+            // ⛓️ DEPENDENCY STATUS: Add blocked class for visual indication
+            const statusClasses = [
+                'task-item',
+                'fade-in',
+                task.status === 'completed' ? 'completed' : '',
+                task.isBlocked ? 'blocked' : ''
+            ].filter(cls => cls).join(' ');
+            
+            taskDiv.className = statusClasses;
             taskDiv.dataset.taskId = task.id;
             
             // Add loading state for optimistic updates
@@ -3201,15 +3572,23 @@
             taskDiv.innerHTML = `
                 <div class="task-header">
                     <h3 class="task-title ${task.status === 'completed' ? 'completed' : ''}">
-                        ${this.escapeHtml(task.title)}
+                        ${task.isBlocked ? '🔒 ' : ''}${this.escapeHtml(task.title)}
                     </h3>
                     <div class="task-actions">
                         <button 
                             class="btn btn-sm btn-secondary" 
                             onclick="taskManager.toggleTaskComplete('${task.id}')"
                             title="${task.status === 'completed' ? 'Mark as pending' : 'Mark as completed'}"
+                            ${task.isBlocked ? 'disabled' : ''}
                         >
-                            ${task.status === 'completed' ? '↩️' : '✅'}
+                            ${task.status === 'completed' ? '↩️' : (task.isBlocked ? '🔒' : '✅')}
+                        </button>
+                        <button 
+                            class="btn btn-sm btn-secondary" 
+                            onclick="taskManager.openDependencyManager('${task.id}')"
+                            title="Manage dependencies"
+                        >
+                            ⛓️
                         </button>
                         <button 
                             class="btn btn-sm btn-secondary" 
@@ -3234,12 +3613,20 @@
                     </div>
                 ` : ''}
                 
+                ${task.isBlocked ? `
+                    <div class="dependency-warning">
+                        ⛓️ This task is blocked by unfinished dependencies
+                    </div>
+                ` : ''}
+                
                 <div class="task-meta">
                     <span class="priority-badge priority-${task.priority}">
                         ${task.priority}
                     </span>
                     
                     ${this.getCategoryDisplayForTask(task)}
+                    
+                    ${this.getDependencyDisplayForTask(task)}
                     
                     ${task.dueDate ? `
                         <span title="Due date">
@@ -4291,6 +4678,303 @@
             this.renderCategoryList();
         };
 
+        /* ============================================
+           ⛓️ DEPENDENCY MANAGEMENT UI
+           ============================================ */
+
+        /**
+         * Open dependency management modal for a specific task
+         */
+        TaskManager.prototype.openDependencyManager = function(taskId) {
+            const modal = document.getElementById('dependency-modal');
+            if (!modal) return;
+            
+            this.currentDependencyTaskId = taskId;
+            const task = this.tasks.find(t => t.id === taskId);
+            
+            if (!task) {
+                this.showError('Task not found');
+                return;
+            }
+            
+            modal.style.display = 'flex';
+            this.initializeDependencyModal(task);
+        };
+
+        /**
+         * Close dependency management modal
+         */
+        TaskManager.prototype.closeDependencyManager = function() {
+            const modal = document.getElementById('dependency-modal');
+            if (!modal) return;
+            
+            modal.style.display = 'none';
+            this.currentDependencyTaskId = null;
+            this.clearDependencyForm();
+        };
+
+        /**
+         * Initialize dependency modal components
+         */
+        TaskManager.prototype.initializeDependencyModal = async function(task) {
+            try {
+                // Render task information
+                this.renderDependencyTaskInfo(task);
+                
+                // Populate available tasks for dependency selection
+                await this.populateDependencyTaskSelector(task);
+                
+                // Setup form handling
+                this.setupDependencyForm();
+                
+                // Render current dependencies
+                await this.renderDependencyList(task);
+                
+            } catch (error) {
+                console.error('❌ Error initializing dependency modal:', error);
+                this.showError('Failed to load dependency information');
+            }
+        };
+
+        /**
+         * Render task information in dependency modal
+         */
+        TaskManager.prototype.renderDependencyTaskInfo = function(task) {
+            const taskInfoElement = document.getElementById('dependency-task-info');
+            if (!taskInfoElement) return;
+            
+            const category = task.categoryId ? this.categoryManager.getCategory(task.categoryId) : null;
+            
+            taskInfoElement.innerHTML = `
+                <div class="task-info-card">
+                    <div class="task-info">
+                        <div class="task-title">${this.escapeHtml(task.title)}</div>
+                        <div class="task-meta">
+                            <span class="task-status ${task.status}">${task.status.charAt(0).toUpperCase() + task.status.slice(1)}</span>
+                            <span class="priority-badge priority-${task.priority}">${task.priority}</span>
+                            ${category ? `
+                                <span class="task-category-tag" style="background-color: ${category.color};">
+                                    ${category.icon} ${category.name}
+                                </span>
+                            ` : ''}
+                            ${task.isBlocked ? '<span class="task-blocked-badge">🔒 Blocked</span>' : ''}
+                        </div>
+                        ${task.description ? `<div class="task-description">${this.escapeHtml(task.description)}</div>` : ''}
+                    </div>
+                </div>
+            `;
+        };
+
+        /**
+         * Populate the task selector with available tasks
+         */
+        TaskManager.prototype.populateDependencyTaskSelector = async function(currentTask) {
+            const selector = document.getElementById('dependency-task');
+            if (!selector) return;
+            
+            // Clear existing options except the first placeholder
+            selector.innerHTML = '<option value="">Choose a task...</option>';
+            
+            // Get all tasks except the current task and already dependent tasks
+            const availableTasks = this.tasks.filter(task => {
+                // Exclude current task
+                if (task.id === currentTask.id) return false;
+                
+                // Exclude completed tasks (cannot depend on completed tasks)
+                if (task.status === 'completed') return false;
+                
+                // Exclude tasks that already depend on this task (prevent circular dependencies)
+                if (currentTask.dependencies && currentTask.dependencies.some(dep => dep.id === task.id)) return false;
+                
+                return true;
+            });
+            
+            // Sort tasks by title
+            availableTasks.sort((a, b) => a.title.localeCompare(b.title));
+            
+            // Add options
+            availableTasks.forEach(task => {
+                const option = document.createElement('option');
+                option.value = task.id;
+                
+                const category = task.categoryId ? this.categoryManager.getCategory(task.categoryId) : null;
+                const categoryText = category ? ` [${category.name}]` : '';
+                
+                option.textContent = `${task.title}${categoryText}`;
+                selector.appendChild(option);
+            });
+            
+            if (availableTasks.length === 0) {
+                const option = document.createElement('option');
+                option.value = '';
+                option.textContent = 'No available tasks to depend on';
+                option.disabled = true;
+                selector.appendChild(option);
+            }
+        };
+
+        /**
+         * Setup dependency form handling
+         */
+        TaskManager.prototype.setupDependencyForm = function() {
+            const form = document.getElementById('dependency-form');
+            if (!form) return;
+            
+            form.onsubmit = async (e) => {
+                e.preventDefault();
+                await this.handleAddDependency();
+            };
+        };
+
+        /**
+         * Handle adding a new dependency
+         */
+        TaskManager.prototype.handleAddDependency = async function() {
+            try {
+                const dependencyTaskId = document.getElementById('dependency-task').value;
+                const dependencyType = document.querySelector('input[name="dependency-type"]:checked').value;
+                
+                if (!dependencyTaskId) {
+                    this.showError('Please select a task to depend on');
+                    return;
+                }
+                
+                // Add dependency to database
+                await this.database.addDependency(this.currentDependencyTaskId, dependencyTaskId, dependencyType);
+                
+                // Refresh the current task and its dependencies
+                await this.refreshTaskDependencies(this.currentDependencyTaskId);
+                
+                // Refresh the dependency modal
+                const currentTask = this.tasks.find(t => t.id === this.currentDependencyTaskId);
+                await this.initializeDependencyModal(currentTask);
+                
+                // Clear the form
+                this.clearDependencyForm();
+                
+                // Refresh main UI
+                this.render();
+                
+                console.log(`⛓️ Added ${dependencyType} dependency: ${this.currentDependencyTaskId} depends on ${dependencyTaskId}`);
+                
+            } catch (error) {
+                console.error('❌ Failed to add dependency:', error);
+                this.showError('Failed to add dependency. Please try again.');
+            }
+        };
+
+        /**
+         * Render the current dependencies list
+         */
+        TaskManager.prototype.renderDependencyList = async function(task) {
+            const listElement = document.getElementById('dependency-list');
+            if (!listElement) return;
+            
+            if (!task.dependencies || task.dependencies.length === 0) {
+                listElement.innerHTML = '<p style="text-align: center; color: var(--color-text-muted);">No dependencies added yet.</p>';
+                return;
+            }
+            
+            listElement.innerHTML = '';
+            
+            task.dependencies.forEach(dependency => {
+                const dependencyElement = document.createElement('div');
+                dependencyElement.className = `dependency-item ${dependency.dependencyType}`;
+                
+                dependencyElement.innerHTML = `
+                    <div class="dependency-info">
+                        <div class="dependency-task-title">${this.escapeHtml(dependency.title)}</div>
+                        <div class="dependency-task-status">
+                            Status: ${dependency.status.charAt(0).toUpperCase() + dependency.status.slice(1)}
+                            ${dependency.completedAt ? `• Completed ${this.formatRelativeTime(dependency.completedAt)}` : ''}
+                        </div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: var(--space-sm);">
+                        <span class="dependency-type-badge ${dependency.dependencyType}">
+                            ${dependency.dependencyType === 'blocking' ? '🚫 Blocking' : '📋 Reference'}
+                        </span>
+                        <button 
+                            class="btn btn-sm btn-secondary" 
+                            onclick="taskManager.removeDependency('${task.id}', '${dependency.id}')"
+                            title="Remove dependency"
+                        >
+                            🗑️
+                        </button>
+                    </div>
+                `;
+                
+                listElement.appendChild(dependencyElement);
+            });
+        };
+
+        /**
+         * Remove a dependency
+         */
+        TaskManager.prototype.removeDependency = async function(taskId, dependencyId) {
+            if (!confirm('Are you sure you want to remove this dependency?')) {
+                return;
+            }
+            
+            try {
+                await this.database.removeDependency(taskId, dependencyId);
+                
+                // Refresh the current task and its dependencies
+                await this.refreshTaskDependencies(taskId);
+                
+                // Refresh the dependency modal
+                const currentTask = this.tasks.find(t => t.id === taskId);
+                await this.initializeDependencyModal(currentTask);
+                
+                // Refresh main UI
+                this.render();
+                
+                console.log(`⛓️ Removed dependency: ${taskId} no longer depends on ${dependencyId}`);
+                
+            } catch (error) {
+                console.error('❌ Failed to remove dependency:', error);
+                this.showError('Failed to remove dependency. Please try again.');
+            }
+        };
+
+        /**
+         * Refresh task dependencies from database
+         */
+        TaskManager.prototype.refreshTaskDependencies = async function(taskId) {
+            try {
+                const task = this.tasks.find(t => t.id === taskId);
+                if (!task) return;
+                
+                // Reload dependencies from database
+                task.dependencies = await this.database.getDependencies(taskId);
+                task.isBlocked = await this.database.updateBlockedStatus(taskId);
+                
+                if (task.dependencies.length > 0) {
+                    task.dependencyType = task.dependencies[0].dependencyType;
+                } else {
+                    task.dependencyType = null;
+                }
+                
+            } catch (error) {
+                console.error('❌ Failed to refresh task dependencies:', error);
+            }
+        };
+
+        /**
+         * Clear dependency form
+         */
+        TaskManager.prototype.clearDependencyForm = function() {
+            const form = document.getElementById('dependency-form');
+            if (!form) return;
+            
+            form.reset();
+            
+            // Reset to blocking dependency type by default
+            const blockingRadio = form.querySelector('input[value="blocking"]');
+            if (blockingRadio) {
+                blockingRadio.checked = true;
+            }
+        };
+
         /**
          * Setup color picker
          */
@@ -4670,6 +5354,48 @@
                     ${category.icon} ${this.escapeHtml(category.name)}
                 </span>
             `;
+        };
+
+        /**
+         * ⛓️ Get dependency display for task
+         */
+        TaskManager.prototype.getDependencyDisplayForTask = function(task) {
+            let dependencyHtml = '';
+            
+            // Show dependency count if task has dependencies
+            if (task.dependencies && task.dependencies.length > 0) {
+                const completedDeps = task.dependencies.filter(dep => dep.status === 'completed').length;
+                const totalDeps = task.dependencies.length;
+                
+                dependencyHtml += `
+                    <span class="task-dependency-badge" title="Dependencies: ${completedDeps}/${totalDeps} completed">
+                        ⛓️ ${completedDeps}/${totalDeps}
+                    </span>
+                `;
+            }
+            
+            // Show blocked indicator if task is blocked
+            if (task.isBlocked) {
+                dependencyHtml += `
+                    <span class="task-blocked-badge" title="This task is blocked by unfinished dependencies">
+                        🔒 Blocked
+                    </span>
+                `;
+            }
+            
+            // Show dependency type if task has dependencies
+            if (task.dependencyType && task.dependencies && task.dependencies.length > 0) {
+                const typeIcon = task.dependencyType === 'blocking' ? '🚫' : '📋';
+                const typeLabel = task.dependencyType === 'blocking' ? 'Blocking' : 'Reference';
+                
+                dependencyHtml += `
+                    <span class="task-dependency-type" title="Dependency type: ${typeLabel}">
+                        ${typeIcon} ${typeLabel}
+                    </span>
+                `;
+            }
+            
+            return dependencyHtml;
         };
 
         /* ============================================
