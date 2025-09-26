@@ -1,20 +1,27 @@
 import { test, expect } from '@playwright/test';
 
 test('Simple HTML file load test', async ({ page }) => {
-  // Navigate to the Live Preview server
-  await page.goto('/index.html?serverWindowId=1af4759b-c155-49a1-be21-29c2705399f6');
+  console.log('Navigating to Live Preview server...');
   
-  // Handle Codespaces security dialog
-  try {
-    // Wait for and click the Continue button
-    await page.waitForSelector('button:has-text("Continue")', { timeout: 10000 });
-    await page.getByRole('button', { name: 'Continue' }).click();
-    console.log('Clicked Continue on security dialog');
+  // Navigate directly to the Live Preview server
+  await page.goto('/index.html');
+  
+  // Check if we hit the security page
+  const pageTitle = await page.title();
+  console.log('Initial page title:', pageTitle);
+  
+  if (pageTitle.includes('Codespaces Access Port')) {
+    console.log('Hit security page, clicking Continue...');
     
-    // Wait for navigation to complete
-    await page.waitForLoadState('networkidle', { timeout: 15000 });
-  } catch (error) {
-    console.log('No security dialog found or already handled');
+    // Click the Continue button
+    await page.click('button:has-text("Continue")');
+    
+    // Wait for the page to change
+    await page.waitForTimeout(10000);
+    
+    // Check title again
+    const newTitle = await page.title();
+    console.log('After Continue - Page title:', newTitle);
   }
   
   // Handle any alert dialogs from the app
@@ -23,27 +30,30 @@ test('Simple HTML file load test', async ({ page }) => {
     await dialog.accept();
   });
   
-  // Wait for the app to load
+  // Wait extra time for app initialization
   await page.waitForTimeout(10000);
   
   // Take a screenshot to see what we get
-  await page.screenshot({ path: 'screenshots/debug-live-preview-load.png', fullPage: true });
+  await page.screenshot({ path: 'screenshots/debug-live-preview-final.png', fullPage: true });
   
-  // Check if we can see any content
-  const title = await page.title();
-  console.log('Page title:', title);
+  // Check final page state
+  const finalTitle = await page.title();
+  console.log('Final page title:', finalTitle);
   
   // Look for any heading or content
   const headings = await page.locator('h1, h2, h3').allTextContents();
   console.log('Found headings:', headings);
   
   // Look for the Task Manager specifically
-  const taskManagerHeading = page.locator('h1:has-text("Task Manager"), .app-title');
-  if (await taskManagerHeading.count() > 0) {
+  const taskManagerHeading = page.locator('h1:has-text("Task Manager"), .app-title, h1:has-text("📋")');
+  const taskManagerCount = await taskManagerHeading.count();
+  console.log('Task Manager heading count:', taskManagerCount);
+  
+  if (taskManagerCount > 0) {
     console.log('Found Task Manager heading!');
     await expect(taskManagerHeading.first()).toBeVisible();
   } else {
-    console.log('Task Manager heading not found, checking body content');
+    console.log('Task Manager heading not found, ensuring page loaded');
     const body = page.locator('body');
     await expect(body).toBeVisible();
   }
