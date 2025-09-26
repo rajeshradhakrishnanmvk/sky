@@ -98,9 +98,104 @@ self.addEventListener('message', (event) => {
         case 'CLEAR_CACHE':
             event.waitUntil(clearApplicationCache());
             break;
+        case 'PROCESS_RECURRING':
+            event.waitUntil(processRecurringTasks());
+            break;
     }
 });
 
+// Periodic background check for overdue recurring tasks
+setInterval(() => {
+    processRecurringTasks();
+}, 5 * 60 * 1000); // Every 5 minutes
+
+// Main recurring task processor
+async function processRecurringTasks() {
+    try {
+        const db = await openDatabase();
+        if (!db.objectStoreNames.contains('tasks')) return;
+        const transaction = db.transaction(['tasks'], 'readonly');
+        const store = transaction.objectStore('tasks');
+        const request = store.getAll();
+        request.onsuccess = async () => {
+            const tasks = request.result || [];
+            const now = new Date();
+            let generatedCount = 0;
+            for (const task of tasks) {
+                if (task.isRecurring && task.nextInstanceDate && new Date(task.nextInstanceDate) <= now) {
+                    // Generate instance
+                    await generateRecurringInstance(db, task);
+                    generatedCount++;
+                }
+            }
+            // Notify all clients
+            const clientsList = await self.clients.matchAll();
+            clientsList.forEach(client => {
+                client.postMessage({ type: 'RECURRING_INSTANCES_GENERATED', data: { count: generatedCount } });
+            });
+        };
+    } catch (error) {
+        console.error('Failed to process recurring tasks:', error);
+    }
+}
+
+// Generate a recurring instance and update parent task
+async function generateRecurringInstance(db, recurringTask) {
+    try {
+        // Clone recurringTask as instance
+        const instance = { ...recurringTask };
+        instance.id = 'instance-' + Date.now() + '-' + Math.floor(Math.random()*10000);
+        instance.isInstance = true;
+        instance.recurringParentId = recurringTask.id;
+        instance.status = 'pending';
+        instance.createdAt = new Date().toISOString();
+        instance.dueDate = recurringTask.nextInstanceDate;
+        // Remove recurrence fields from instance
+        delete instance.isRecurring;
+        delete instance.recurringPattern;
+        delete instance.nextInstanceDate;
+        delete instance.instanceCount;
+        // Save instance
+        const tx = db.transaction(['tasks'], 'readwrite');
+        tx.objectStore('tasks').put(instance);
+        // Update parent task's nextInstanceDate and instanceCount
+        const newNextDate = calculateNextInstanceDate(recurringTask.recurringPattern, new Date(instance.dueDate));
+        const updates = {
+            ...recurringTask,
+            lastInstanceDate: instance.dueDate,
+            instanceCount: (recurringTask.instanceCount || 0) + 1,
+            nextInstanceDate: newNextDate
+        };
+        tx.objectStore('tasks').put(updates);
+        await tx.complete;
+    } catch (error) {
+        console.error('Failed to generate recurring instance:', error);
+    }
+}
+
+// Calculate next instance date (simple version)
+function calculateNextInstanceDate(pattern, fromDate) {
+    if (!pattern || !fromDate) return null;
+    const date = new Date(fromDate);
+    switch (pattern.type) {
+        case 'daily':
+            date.setDate(date.getDate() + (pattern.interval || 1));
+            break;
+        case 'weekly':
+            date.setDate(date.getDate() + 7 * (pattern.interval || 1));
+            break;
+        case 'monthly':
+            date.setMonth(date.getMonth() + (pattern.interval || 1));
+            break;
+        case 'yearly':
+            date.setFullYear(date.getFullYear() + (pattern.interval || 1));
+            break;
+        default:
+            return null;
+    }
+    if (pattern.endDate && new Date(pattern.endDate) < date) return null;
+    return date.toISOString();
+}
 // Caching strategies implementation
 async function cacheFirstStrategy(request) {
     try {
@@ -229,7 +324,7 @@ async function syncDeleteTask(taskData) {
 // IndexedDB operations for Service Worker
 async function openDatabase() {
     return new Promise((resolve, reject) => {
-        const request = indexedDB.open('TaskManagerDB', 3);
+        const request = indexedDB.open('TaskManagerDB', 4);
         request.onsuccess = () => resolve(request.result);
         request.onerror = () => reject(request.error);
         
@@ -241,6 +336,13 @@ async function openDatabase() {
                 const syncStore = db.createObjectStore('syncQueue', { keyPath: 'id' });
                 syncStore.createIndex('timestamp', 'timestamp');
                 syncStore.createIndex('type', 'type');
+            }
+            
+            // Create recurring patterns store if it doesn't exist (v4)
+            if (!db.objectStoreNames.contains('recurringPatterns')) {
+                const recurringStore = db.createObjectStore('recurringPatterns', { keyPath: 'id' });
+                recurringStore.createIndex('by-parentTask', 'parentTaskId', { unique: false });
+                recurringStore.createIndex('by-active', 'isActive', { unique: false });
             }
         };
     });

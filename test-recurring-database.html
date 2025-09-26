@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Recurring Tasks Database Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-result { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .test-log { background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 10px 0; max-height: 400px; overflow-y: auto; }
+        pre { white-space: pre-wrap; word-wrap: break-word; }
+    </style>
+</head>
+<body>
+    <h1>🔄 Recurring Tasks Database Schema Test</h1>
+    
+    <div class="info">
+        <strong>Test Purpose:</strong> Verify v3 → v4 database migration for recurring tasks support
+    </div>
+    
+    <button onclick="runDatabaseTests()">🧪 Run Database Tests</button>
+    <button onclick="clearDatabase()">🗑️ Clear Database</button>
+    <button onclick="clearLog()">📝 Clear Log</button>
+    
+    <div id="test-results"></div>
+    <div id="test-log" class="test-log">
+        <strong>Test Log:</strong><br>
+        <pre id="log-content">Click "Run Database Tests" to start...</pre>
+    </div>
+
+    <script>
+        let testResults = document.getElementById('test-results');
+        let logContent = document.getElementById('log-content');
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            logContent.innerHTML += `[${timestamp}] ${message}\n`;
+            logContent.parentElement.scrollTop = logContent.parentElement.scrollHeight;
+            console.log(message);
+        }
+        
+        function showResult(test, passed, message) {
+            const div = document.createElement('div');
+            div.className = `test-result ${passed ? 'success' : 'error'}`;
+            div.innerHTML = `<strong>${test}:</strong> ${passed ? '✅ PASS' : '❌ FAIL'} - ${message}`;
+            testResults.appendChild(div);
+        }
+        
+        function clearLog() {
+            logContent.innerHTML = 'Log cleared...\n';
+            testResults.innerHTML = '';
+        }
+        
+        async function clearDatabase() {
+            try {
+                // Delete the database
+                const deleteRequest = indexedDB.deleteDatabase('TaskManagerDB');
+                deleteRequest.onsuccess = () => {
+                    log('🗑️ Database cleared successfully');
+                    showResult('Database Clear', true, 'Database deleted');
+                };
+                deleteRequest.onerror = () => {
+                    log('❌ Failed to clear database');
+                    showResult('Database Clear', false, 'Delete failed');
+                };
+            } catch (error) {
+                log(`❌ Error clearing database: ${error.message}`);
+                showResult('Database Clear', false, error.message);
+            }
+        }
+
+        // Simple TaskDatabase class for testing
+        class TaskDatabase {
+            constructor() {
+                this.dbName = 'TaskManagerDB';
+                this.version = 4;
+                this.db = null;
+            }
+
+            async init() {
+                return new Promise((resolve, reject) => {
+                    log(`🔧 Opening database v${this.version}`);
+                    const request = indexedDB.open(this.dbName, this.version);
+                    
+                    request.onerror = () => {
+                        log(`❌ Database open failed: ${request.error}`);
+                        reject(request.error);
+                    };
+                    
+                    request.onsuccess = () => {
+                        this.db = request.result;
+                        log(`✅ Database opened successfully v${this.db.version}`);
+                        resolve(this.db);
+                    };
+                    
+                    request.onupgradeneeded = (event) => {
+                        const db = event.target.result;
+                        const oldVersion = event.oldVersion;
+                        const transaction = event.target.transaction;
+                        
+                        log(`🔄 Database upgrade: v${oldVersion} → v${this.version}`);
+                        
+                        // Create tasks object store
+                        if (!db.objectStoreNames.contains('tasks')) {
+                            const taskStore = db.createObjectStore('tasks', { keyPath: 'id' });
+                            taskStore.createIndex('by-status', 'status', { unique: false });
+                            taskStore.createIndex('by-priority', 'priority', { unique: false });
+                            taskStore.createIndex('by-dueDate', 'dueDate', { unique: false });
+                            taskStore.createIndex('by-created', 'createdAt', { unique: false });
+                            taskStore.createIndex('by-modified', 'modifiedAt', { unique: false });
+                            taskStore.createIndex('by-dependencies', 'dependencies', { unique: false, multiEntry: true });
+                            taskStore.createIndex('by-blocked-status', 'isBlocked', { unique: false });
+                            
+                            // v4: Add recurring task indexes
+                            taskStore.createIndex('by-recurring', 'isRecurring', { unique: false });
+                            taskStore.createIndex('by-parent-task', 'parentTaskId', { unique: false });
+                            taskStore.createIndex('by-recurring-status', 'recurringStatus', { unique: false });
+                            taskStore.createIndex('by-next-due', 'nextDueDate', { unique: false });
+                            
+                            log('📋 Tasks store created with all indexes (v4)');
+                        } else if (oldVersion < 4) {
+                            // Migration for v3 → v4
+                            const taskStore = transaction.objectStore('tasks');
+                            
+                            try {
+                                if (!taskStore.indexNames.contains('by-recurring')) {
+                                    taskStore.createIndex('by-recurring', 'isRecurring', { unique: false });
+                                }
+                                if (!taskStore.indexNames.contains('by-parent-task')) {
+                                    taskStore.createIndex('by-parent-task', 'parentTaskId', { unique: false });
+                                }
+                                if (!taskStore.indexNames.contains('by-recurring-status')) {
+                                    taskStore.createIndex('by-recurring-status', 'recurringStatus', { unique: false });
+                                }
+                                if (!taskStore.indexNames.contains('by-next-due')) {
+                                    taskStore.createIndex('by-next-due', 'nextDueDate', { unique: false });
+                                }
+                                
+                                log('🔄 Tasks store migrated to v4 with recurring indexes');
+                                this.migrateTasksToV4(taskStore, transaction);
+                            } catch (indexError) {
+                                log(`⚠️ Index creation warning: ${indexError}`);
+                            }
+                        }
+                        
+                        // Create categories store
+                        if (!db.objectStoreNames.contains('categories')) {
+                            const categoryStore = db.createObjectStore('categories', { keyPath: 'id' });
+                            categoryStore.createIndex('by-name', 'name', { unique: true });
+                            log('📂 Categories store created');
+                        }
+                        
+                        // Create settings store
+                        if (!db.objectStoreNames.contains('settings')) {
+                            db.createObjectStore('settings', { keyPath: 'key' });
+                            log('⚙️ Settings store created');
+                        }
+                        
+                        // Create recurring patterns store (v4)
+                        if (!db.objectStoreNames.contains('recurringPatterns')) {
+                            const recurringStore = db.createObjectStore('recurringPatterns', { keyPath: 'id' });
+                            recurringStore.createIndex('by-parentTask', 'parentTaskId', { unique: false });
+                            recurringStore.createIndex('by-frequency', 'frequency', { unique: false });
+                            recurringStore.createIndex('by-nextDue', 'nextDueDate', { unique: false });
+                            recurringStore.createIndex('by-active', 'isActive', { unique: false });
+                            recurringStore.createIndex('by-lastExecuted', 'lastExecuted', { unique: false });
+                            log('🔄 Recurring patterns store created with indexes');
+                        }
+                    };
+                });
+            }
+
+            migrateTasksToV4(taskStore, transaction) {
+                log('🔄 Starting v4 task migration...');
+                
+                const cursor = taskStore.openCursor();
+                let migratedCount = 0;
+                
+                cursor.onsuccess = (event) => {
+                    const cursor = event.target.result;
+                    if (cursor) {
+                        const task = cursor.value;
+                        
+                        // Add recurring fields with default values
+                        const updatedTask = {
+                            ...task,
+                            isRecurring: false,
+                            parentTaskId: null,
+                            recurringConfig: null,
+                            recurringInstanceData: null,
+                            recurringStatus: null,
+                            nextDueDate: null,
+                            lastGeneratedDate: null,
+                            completedInstances: 0
+                        };
+                        
+                        cursor.update(updatedTask);
+                        migratedCount++;
+                        cursor.continue();
+                    } else {
+                        log(`✅ v4 migration complete: ${migratedCount} tasks migrated`);
+                    }
+                };
+            }
+
+            generateUUID() {
+                return 'test-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+            }
+
+            async createTask(taskData) {
+                const task = {
+                    id: this.generateUUID(),
+                    title: taskData.title,
+                    description: taskData.description || '',
+                    status: 'pending',
+                    priority: 'medium',
+                    createdAt: new Date().toISOString(),
+                    modifiedAt: new Date().toISOString(),
+                    completedAt: null,
+                    dependencies: [],
+                    isBlocked: false,
+                    // v4 recurring fields
+                    isRecurring: taskData.isRecurring || false,
+                    parentTaskId: taskData.parentTaskId || null,
+                    recurringConfig: taskData.recurringConfig || null,
+                    recurringStatus: taskData.recurringStatus || null,
+                    nextDueDate: taskData.nextDueDate || null,
+                    lastGeneratedDate: null,
+                    completedInstances: 0
+                };
+                
+                const transaction = this.db.transaction(['tasks'], 'readwrite');
+                const store = transaction.objectStore('tasks');
+                
+                return new Promise((resolve, reject) => {
+                    const request = store.add(task);
+                    request.onsuccess = () => resolve(task);
+                    request.onerror = () => reject(request.error);
+                });
+            }
+
+            async createRecurringPattern(patternData) {
+                const pattern = {
+                    id: this.generateUUID().replace('test-', 'pattern-'),
+                    parentTaskId: patternData.parentTaskId,
+                    frequency: patternData.frequency || 'daily',
+                    interval: patternData.interval || 1,
+                    isActive: true,
+                    createdAt: new Date().toISOString(),
+                    modifiedAt: new Date().toISOString(),
+                    lastExecuted: null
+                };
+                
+                const transaction = this.db.transaction(['recurringPatterns'], 'readwrite');
+                const store = transaction.objectStore('recurringPatterns');
+                
+                return new Promise((resolve, reject) => {
+                    const request = store.add(pattern);
+                    request.onsuccess = () => resolve(pattern);
+                    request.onerror = () => reject(request.error);
+                });
+            }
+        }
+
+        async function runDatabaseTests() {
+            clearLog();
+            testResults.innerHTML = '';
+            
+            log('🧪 Starting Recurring Tasks Database Tests...');
+            
+            try {
+                // Test 1: Database Initialization
+                log('\n📋 Test 1: Database Initialization');
+                const db = new TaskDatabase();
+                await db.init();
+                showResult('Database Init', true, `Database v${db.db.version} opened successfully`);
+                
+                // Test 2: Object Store Existence
+                log('\n📋 Test 2: Object Store Verification');
+                const stores = ['tasks', 'categories', 'settings', 'recurringPatterns'];
+                let storesExist = true;
+                
+                for (const storeName of stores) {
+                    if (db.db.objectStoreNames.contains(storeName)) {
+                        log(`✅ ${storeName} store exists`);
+                    } else {
+                        log(`❌ ${storeName} store missing`);
+                        storesExist = false;
+                    }
+                }
+                showResult('Object Stores', storesExist, `${stores.length} object stores verified`);
+                
+                // Test 3: Task Creation with Recurring Fields
+                log('\n📋 Test 3: Task Creation with Recurring Fields');
+                const recurringTask = await db.createTask({
+                    title: 'Test Recurring Task',
+                    description: 'Test task with recurring fields',
+                    isRecurring: true,
+                    recurringStatus: 'template'
+                });
+                
+                const hasRecurringFields = recurringTask.isRecurring && 
+                                         recurringTask.hasOwnProperty('parentTaskId') &&
+                                         recurringTask.hasOwnProperty('recurringConfig') &&
+                                         recurringTask.hasOwnProperty('nextDueDate') &&
+                                         recurringTask.hasOwnProperty('completedInstances');
+                
+                showResult('Recurring Task Creation', hasRecurringFields, `Task created with all recurring fields`);
+                log(`✅ Created recurring task: ${recurringTask.id}`);
+                
+                // Test 4: Recurring Pattern Creation
+                log('\n📋 Test 4: Recurring Pattern Creation');
+                const pattern = await db.createRecurringPattern({
+                    parentTaskId: recurringTask.id,
+                    frequency: 'daily',
+                    interval: 1
+                });
+                
+                showResult('Recurring Pattern Creation', pattern.id && pattern.frequency === 'daily', 
+                          `Pattern created: ${pattern.id}`);
+                log(`✅ Created recurring pattern: ${pattern.id}`);
+                
+                // Test 5: Index Verification
+                log('\n📋 Test 5: Index Verification');
+                const transaction = db.db.transaction(['tasks'], 'readonly');
+                const taskStore = transaction.objectStore('tasks');
+                
+                const recurringIndexes = ['by-recurring', 'by-parent-task', 'by-recurring-status', 'by-next-due'];
+                let indexesExist = true;
+                
+                for (const indexName of recurringIndexes) {
+                    if (taskStore.indexNames.contains(indexName)) {
+                        log(`✅ ${indexName} index exists`);
+                    } else {
+                        log(`❌ ${indexName} index missing`);
+                        indexesExist = false;
+                    }
+                }
+                
+                showResult('Recurring Indexes', indexesExist, `${recurringIndexes.length} recurring indexes verified`);
+                
+                log('\n🎉 All database tests completed successfully!');
+                
+            } catch (error) {
+                log(`❌ Test failed: ${error.message}`);
+                showResult('Database Tests', false, error.message);
+            }
+        }
+    </script>
+</body>
+</html>

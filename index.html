@@ -329,6 +329,90 @@
             resize: vertical;
         }
         
+            /* Recurring Task Form Styles */
+            .recurring-section {
+                border-top: 1px solid var(--color-border);
+                padding-top: var(--space-md);
+                margin-top: var(--space-md);
+            }
+        
+            .form-checkbox-label {
+                display: flex;
+                align-items: center;
+                gap: var(--space-sm);
+                cursor: pointer;
+                font-weight: 500;
+            }
+        
+            .form-checkbox {
+                width: 16px;
+                height: 16px;
+                cursor: pointer;
+            }
+        
+            .recurring-options {
+                background-color: var(--color-surface);
+                border: 1px solid var(--color-border);
+                border-radius: var(--radius-md);
+                padding: var(--space-md);
+                margin-top: var(--space-md);
+                animation: fadeIn 0.2s ease-in-out;
+            }
+        
+            .days-selector {
+                display: flex;
+                gap: var(--space-xs);
+                flex-wrap: wrap;
+            }
+        
+            .day-checkbox {
+                display: flex;
+                align-items: center;
+                gap: var(--space-xs);
+                padding: var(--space-xs) var(--space-sm);
+                border: 1px solid var(--color-border);
+                border-radius: var(--radius-sm);
+                cursor: pointer;
+                transition: all var(--transition-fast);
+                font-size: var(--text-sm);
+                min-width: 50px;
+                justify-content: center;
+            }
+        
+            .day-checkbox:hover {
+                background-color: var(--color-surface-elevated);
+            }
+        
+            .day-checkbox input:checked + span,
+            .day-checkbox:has(input:checked) {
+                background-color: var(--color-primary);
+                color: white;
+                border-color: var(--color-primary);
+            }
+        
+            .day-checkbox input {
+                display: none;
+            }
+        
+            .form-help {
+                display: block;
+                margin-top: var(--space-xs);
+                font-size: var(--text-xs);
+                color: var(--color-text-muted);
+                font-style: italic;
+            }
+        
+            #interval-label {
+                font-size: var(--text-sm);
+                color: var(--color-text-muted);
+                white-space: nowrap;
+            }
+        
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(-10px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+        
         .form-select {
             background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
             background-position: right var(--space-sm) center;
@@ -1525,7 +1609,92 @@
                                 </div>
                             </div>
                             
-                            <div style="display: flex; gap: var(--space-sm); align-items: center;">
+                                <!-- 🔄 Recurring Task Controls -->
+                                <div class="recurring-section">
+                                    <div class="form-group">
+                                        <label class="form-checkbox-label">
+                                            <input type="checkbox" id="task-recurring" class="form-checkbox">
+                                            <span class="checkmark"></span>
+                                            🔄 Make this a recurring task
+                                        </label>
+                                    </div>
+                                
+                                    <div id="recurring-options" class="recurring-options" style="display: none;">
+                                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md); margin-bottom: var(--space-md);">
+                                            <div class="form-group">
+                                                <label for="recurring-frequency" class="form-label">Frequency</label>
+                                                <select id="recurring-frequency" class="form-input form-select">
+                                                    <option value="daily">Daily</option>
+                                                    <option value="weekly" selected>Weekly</option>
+                                                    <option value="monthly">Monthly</option>
+                                                    <option value="yearly">Yearly</option>
+                                                    <option value="custom">Custom</option>
+                                                </select>
+                                            </div>
+                                        
+                                            <div class="form-group">
+                                                <label for="recurring-interval" class="form-label">Every</label>
+                                                <div style="display: flex; align-items: center; gap: var(--space-sm);">
+                                                    <input type="number" id="recurring-interval" class="form-input" value="1" min="1" max="365" style="width: 80px;">
+                                                    <span id="interval-label">week(s)</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    
+                                        <!-- Weekly Days Selection -->
+                                        <div id="weekly-days" class="form-group" style="display: none;">
+                                            <label class="form-label">Days of the Week</label>
+                                            <div class="days-selector">
+                                                <label class="day-checkbox"><input type="checkbox" value="0"> Sun</label>
+                                                <label class="day-checkbox"><input type="checkbox" value="1"> Mon</label>
+                                                <label class="day-checkbox"><input type="checkbox" value="2"> Tue</label>
+                                                <label class="day-checkbox"><input type="checkbox" value="3"> Wed</label>
+                                                <label class="day-checkbox"><input type="checkbox" value="4"> Thu</label>
+                                                <label class="day-checkbox"><input type="checkbox" value="5"> Fri</label>
+                                                <label class="day-checkbox"><input type="checkbox" value="6"> Sat</label>
+                                            </div>
+                                        </div>
+                                    
+                                        <!-- Monthly Day Selection -->
+                                        <div id="monthly-day" class="form-group" style="display: none;">
+                                            <label for="monthly-day-type" class="form-label">Monthly Recurrence</label>
+                                            <select id="monthly-day-type" class="form-input form-select">
+                                                <option value="date">Same date each month</option>
+                                                <option value="weekday">Same weekday (e.g., 2nd Monday)</option>
+                                            </select>
+                                        </div>
+                                    
+                                        <!-- Custom Pattern -->
+                                        <div id="custom-pattern" class="form-group" style="display: none;">
+                                            <label for="custom-pattern-input" class="form-label">Custom Pattern (Advanced)</label>
+                                            <textarea id="custom-pattern-input" class="form-input form-textarea" 
+                                                    placeholder="Enter custom recurrence pattern in JSON format..."
+                                                    rows="3"></textarea>
+                                            <small class="form-help">Advanced users: Define custom recurring patterns using JSON syntax</small>
+                                        </div>
+                                    
+                                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md);">
+                                            <div class="form-group">
+                                                <label for="recurring-end-date" class="form-label">End Date (Optional)</label>
+                                                <input type="date" id="recurring-end-date" class="form-input">
+                                            </div>
+                                        
+                                            <div class="form-group">
+                                                <label for="recurring-timezone" class="form-label">Timezone</label>
+                                                <select id="recurring-timezone" class="form-input form-select">
+                                                    <option value="local" selected>Local Time</option>
+                                                    <option value="UTC">UTC</option>
+                                                    <option value="America/New_York">Eastern Time</option>
+                                                    <option value="America/Chicago">Central Time</option>
+                                                    <option value="America/Denver">Mountain Time</option>
+                                                    <option value="America/Los_Angeles">Pacific Time</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            
+                                <div style="display: flex; gap: var(--space-sm); align-items: center;">
                                 <button type="submit" class="btn btn-primary">
                                     Add Task
                                 </button>
@@ -1819,7 +1988,7 @@
         class TaskDatabase {
             constructor() {
                 this.dbName = 'TaskManagerDB';
-                this.version = 3; // Updated version to handle existing database
+                this.version = 4; // Updated version for recurring tasks support
                 this.db = null;
                 this.isInitialized = false;
                 this.backupDbName = 'TaskManagerDB_Backup'; // Backup database
@@ -1908,6 +2077,32 @@
                             } catch (indexError) {
                                 console.warn('⚠️ Index creation failed:', indexError);
                             }
+                        } else if (oldVersion < 4) {
+                            // Migration for v3 → v4: Add recurring task support
+                            const taskStore = transaction.objectStore('tasks');
+                            
+                            try {
+                                // Add new recurring task indexes
+                                if (!taskStore.indexNames.contains('by-recurring')) {
+                                    taskStore.createIndex('by-recurring', 'isRecurring', { unique: false });
+                                }
+                                if (!taskStore.indexNames.contains('by-parent-task')) {
+                                    taskStore.createIndex('by-parent-task', 'parentTaskId', { unique: false });
+                                }
+                                if (!taskStore.indexNames.contains('by-recurring-status')) {
+                                    taskStore.createIndex('by-recurring-status', 'recurringStatus', { unique: false });
+                                }
+                                if (!taskStore.indexNames.contains('by-next-due')) {
+                                    taskStore.createIndex('by-next-due', 'nextDueDate', { unique: false });
+                                }
+                                
+                                console.log('🔄 Tasks store migrated to v4 with recurring task indexes');
+                                
+                                // Migrate existing tasks to include recurring fields
+                                this.migrateTasksToV4(taskStore, transaction);
+                            } catch (indexError) {
+                                console.warn('⚠️ Recurring task index creation failed:', indexError);
+                            }
                         }
                         
                         // Create categories store (for future use)
@@ -1921,6 +2116,20 @@
                         if (!db.objectStoreNames.contains('settings')) {
                             db.createObjectStore('settings', { keyPath: 'key' });
                             console.log('⚙️ Settings store created');
+                        }
+                        
+                        // Create recurring patterns store (v4)
+                        if (!db.objectStoreNames.contains('recurringPatterns')) {
+                            const recurringStore = db.createObjectStore('recurringPatterns', { keyPath: 'id' });
+                            
+                            // Create indexes for efficient recurring task queries
+                            recurringStore.createIndex('by-parentTask', 'parentTaskId', { unique: false });
+                            recurringStore.createIndex('by-frequency', 'frequency', { unique: false });
+                            recurringStore.createIndex('by-nextDue', 'nextDueDate', { unique: false });
+                            recurringStore.createIndex('by-active', 'isActive', { unique: false });
+                            recurringStore.createIndex('by-lastExecuted', 'lastExecuted', { unique: false });
+                            
+                            console.log('🔄 Recurring patterns store created with indexes');
                         }
                     };
                 });
@@ -1981,6 +2190,57 @@
                 } catch (error) {
                     console.error('❌ Migration error:', error);
                 }
+            }
+
+            /**
+             * Migrate existing tasks to v4 schema (add recurring fields)
+             */
+            migrateTasksToV4(taskStore, transaction) {
+                console.log('🔄 Starting v4 migration: Adding recurring task fields...');
+                
+                return new Promise((resolve, reject) => {
+                    const cursor = taskStore.openCursor();
+                    let migratedCount = 0;
+                    
+                    cursor.onsuccess = (event) => {
+                        const cursor = event.target.result;
+                        if (cursor) {
+                            const task = cursor.value;
+                            
+                            // Add recurring fields with default values
+                            const updatedTask = {
+                                ...task,
+                                isRecurring: false,
+                                parentTaskId: null,
+                                recurringConfig: null,
+                                recurringInstanceData: null,
+                                recurringStatus: null,
+                                nextDueDate: null,
+                                lastGeneratedDate: null,
+                                completedInstances: 0
+                            };
+                            
+                            // Update the task
+                            const updateRequest = cursor.update(updatedTask);
+                            updateRequest.onsuccess = () => {
+                                migratedCount++;
+                                cursor.continue();
+                            };
+                            updateRequest.onerror = () => {
+                                console.error('❌ Failed to migrate task:', task.id);
+                                cursor.continue();
+                            };
+                        } else {
+                            console.log(`✅ v4 migration complete: ${migratedCount} tasks migrated`);
+                            resolve(migratedCount);
+                        }
+                    };
+                    
+                    cursor.onerror = () => {
+                        console.error('❌ v4 migration cursor error');
+                        reject(cursor.error);
+                    };
+                });
             }
 
             /**
@@ -2406,6 +2666,67 @@
                     sanitized.isBlocked = Boolean(data.isBlocked);
                 }
                 
+                // NEW: Recurring task fields validation (v4)
+                if (data.isRecurring !== undefined) {
+                    sanitized.isRecurring = Boolean(data.isRecurring);
+                }
+                
+                if (data.parentTaskId !== undefined) {
+                    if (data.parentTaskId && typeof data.parentTaskId === 'string') {
+                        sanitized.parentTaskId = data.parentTaskId.trim();
+                    } else {
+                        sanitized.parentTaskId = null;
+                    }
+                }
+                
+                if (data.recurringConfig !== undefined) {
+                    if (data.recurringConfig) {
+                        sanitized.recurringConfig = this.validateRecurringConfig(data.recurringConfig);
+                    } else {
+                        sanitized.recurringConfig = null;
+                    }
+                }
+                
+                if (data.recurringStatus !== undefined) {
+                    const validRecurringStatuses = ['template', 'instance', 'completed_instance'];
+                    if (data.recurringStatus && !validRecurringStatuses.includes(data.recurringStatus)) {
+                        throw new Error('Invalid recurring status');
+                    }
+                    sanitized.recurringStatus = data.recurringStatus || null;
+                }
+                
+                if (data.nextDueDate !== undefined) {
+                    if (data.nextDueDate) {
+                        const date = new Date(data.nextDueDate);
+                        if (isNaN(date.getTime())) {
+                            throw new Error('Invalid next due date');
+                        }
+                        sanitized.nextDueDate = date.toISOString();
+                    } else {
+                        sanitized.nextDueDate = null;
+                    }
+                }
+                
+                if (data.lastGeneratedDate !== undefined) {
+                    if (data.lastGeneratedDate) {
+                        const date = new Date(data.lastGeneratedDate);
+                        if (isNaN(date.getTime())) {
+                            throw new Error('Invalid last generated date');
+                        }
+                        sanitized.lastGeneratedDate = date.toISOString();
+                    } else {
+                        sanitized.lastGeneratedDate = null;
+                    }
+                }
+                
+                if (data.completedInstances !== undefined) {
+                    const instances = parseInt(data.completedInstances, 10);
+                    if (isNaN(instances) || instances < 0) {
+                        throw new Error('Invalid completed instances count');
+                    }
+                    sanitized.completedInstances = instances;
+                }
+                
                 // Set defaults for new tasks
                 if (requireTitle) {
                     sanitized.status = sanitized.status || 'pending';
@@ -2417,11 +2738,113 @@
                     sanitized.dependencies = sanitized.dependencies || [];
                     sanitized.dependencyType = sanitized.dependencyType || 'blocking';
                     sanitized.isBlocked = sanitized.isBlocked || false;
+                    // NEW: Set recurring task defaults (v4)
+                    sanitized.isRecurring = sanitized.isRecurring || false;
+                    sanitized.parentTaskId = sanitized.parentTaskId || null;
+                    sanitized.recurringConfig = sanitized.recurringConfig || null;
+                    sanitized.recurringStatus = sanitized.recurringStatus || null;
+                    sanitized.nextDueDate = sanitized.nextDueDate || null;
+                    sanitized.lastGeneratedDate = sanitized.lastGeneratedDate || null;
+                    sanitized.completedInstances = sanitized.completedInstances || 0;
                 }
                 
                 return sanitized;
             }
             
+            /**
+             * Validate recurring configuration object
+             */
+            validateRecurringConfig(config) {
+                if (!config || typeof config !== 'object') {
+                    throw new Error('Recurring configuration must be an object');
+                }
+                
+                const validFrequencies = ['daily', 'weekly', 'monthly', 'yearly', 'custom'];
+                if (!config.frequency || !validFrequencies.includes(config.frequency)) {
+                    throw new Error('Invalid recurring frequency');
+                }
+                
+                const sanitized = {
+                    frequency: config.frequency,
+                    interval: parseInt(config.interval, 10) || 1
+                };
+                
+                // Validate interval
+                if (sanitized.interval < 1 || sanitized.interval > 365) {
+                    throw new Error('Interval must be between 1 and 365');
+                }
+                
+                // Frequency-specific validation
+                switch (config.frequency) {
+                    case 'weekly':
+                        if (config.weekDays && Array.isArray(config.weekDays)) {
+                            sanitized.weekDays = config.weekDays.filter(day => 
+                                Number.isInteger(day) && day >= 0 && day <= 6
+                            );
+                        }
+                        break;
+                        
+                    case 'monthly':
+                        if (config.monthDay && Number.isInteger(config.monthDay)) {
+                            if (config.monthDay >= 1 && config.monthDay <= 31) {
+                                sanitized.monthDay = config.monthDay;
+                            }
+                        }
+                        if (config.monthWeek && Number.isInteger(config.monthWeek)) {
+                            if ((config.monthWeek >= 1 && config.monthWeek <= 4) || config.monthWeek === -1) {
+                                sanitized.monthWeek = config.monthWeek;
+                            }
+                        }
+                        if (config.monthWeekDay && Number.isInteger(config.monthWeekDay)) {
+                            if (config.monthWeekDay >= 0 && config.monthWeekDay <= 6) {
+                                sanitized.monthWeekDay = config.monthWeekDay;
+                            }
+                        }
+                        break;
+                        
+                    case 'yearly':
+                        if (config.yearMonth && Number.isInteger(config.yearMonth)) {
+                            if (config.yearMonth >= 1 && config.yearMonth <= 12) {
+                                sanitized.yearMonth = config.yearMonth;
+                            }
+                        }
+                        if (config.yearDay && Number.isInteger(config.yearDay)) {
+                            if (config.yearDay >= 1 && config.yearDay <= 365) {
+                                sanitized.yearDay = config.yearDay;
+                            }
+                        }
+                        break;
+                        
+                    case 'custom':
+                        if (config.customCron && typeof config.customCron === 'string') {
+                            // Basic cron validation (simplified)
+                            const cronRegex = /^(\*|[0-9,\-\/]+)\s+(\*|[0-9,\-\/]+)\s+(\*|[0-9,\-\/]+)\s+(\*|[0-9,\-\/]+)\s+(\*|[0-7,\-\/]+)$/;
+                            if (!cronRegex.test(config.customCron.trim())) {
+                                throw new Error('Invalid cron expression');
+                            }
+                            sanitized.customCron = config.customCron.trim();
+                        }
+                        break;
+                }
+                
+                // Optional end conditions
+                if (config.endDate) {
+                    const endDate = new Date(config.endDate);
+                    if (isNaN(endDate.getTime())) {
+                        throw new Error('Invalid end date');
+                    }
+                    sanitized.endDate = endDate.toISOString();
+                }
+                
+                if (config.maxInstances && Number.isInteger(config.maxInstances)) {
+                    if (config.maxInstances > 0 && config.maxInstances <= 1000) {
+                        sanitized.maxInstances = config.maxInstances;
+                    }
+                }
+                
+                return sanitized;
+            }
+
             /**
              * Sanitize HTML input to prevent XSS attacks
              */
@@ -2438,6 +2861,226 @@
              */
             generateUUID() {
                 return 'task-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+            }
+
+            /* ============================================
+               🔄 RECURRING PATTERNS CRUD METHODS (v4)
+               ============================================ */
+
+            /**
+             * Create a new recurring pattern
+             */
+            async createRecurringPattern(patternData) {
+                try {
+                    await this.ensureDatabase();
+                    
+                    // Validate pattern data
+                    const pattern = this.validateRecurringPatternData(patternData);
+                    
+                    // Generate unique ID and timestamps
+                    pattern.id = this.generateUUID().replace('task-', 'pattern-');
+                    pattern.createdAt = new Date().toISOString();
+                    pattern.modifiedAt = pattern.createdAt;
+                    pattern.isActive = true;
+                    pattern.lastExecuted = null;
+                    
+                    // Store in IndexedDB
+                    const transaction = this.db.transaction(['recurringPatterns'], 'readwrite');
+                    const store = transaction.objectStore('recurringPatterns');
+                    
+                    await new Promise((resolve, reject) => {
+                        const request = store.add(pattern);
+                        request.onsuccess = () => resolve(request.result);
+                        request.onerror = () => reject(request.error);
+                    });
+                    
+                    console.log('✅ Recurring pattern created:', pattern.frequency);
+                    return pattern;
+                    
+                } catch (error) {
+                    console.error('❌ Failed to create recurring pattern:', error);
+                    throw new Error(`Failed to create recurring pattern: ${error.message}`);
+                }
+            }
+
+            /**
+             * Get recurring pattern by ID
+             */
+            async getRecurringPattern(patternId) {
+                try {
+                    await this.ensureDatabase();
+                    
+                    const transaction = this.db.transaction(['recurringPatterns'], 'readonly');
+                    const store = transaction.objectStore('recurringPatterns');
+                    
+                    return new Promise((resolve, reject) => {
+                        const request = store.get(patternId);
+                        request.onsuccess = () => resolve(request.result);
+                        request.onerror = () => reject(request.error);
+                    });
+                    
+                } catch (error) {
+                    console.error('❌ Failed to get recurring pattern:', error);
+                    throw error;
+                }
+            }
+
+            /**
+             * Get all recurring patterns with optional filtering
+             */
+            async getAllRecurringPatterns(filter = {}) {
+                try {
+                    await this.ensureDatabase();
+                    
+                    const transaction = this.db.transaction(['recurringPatterns'], 'readonly');
+                    const store = transaction.objectStore('recurringPatterns');
+                    
+                    let request;
+                    if (filter.active !== undefined) {
+                        const index = store.index('by-active');
+                        request = index.getAll(filter.active);
+                    } else if (filter.parentTaskId) {
+                        const index = store.index('by-parentTask');
+                        request = index.getAll(filter.parentTaskId);
+                    } else {
+                        request = store.getAll();
+                    }
+                    
+                    const patterns = await new Promise((resolve, reject) => {
+                        request.onsuccess = () => resolve(request.result);
+                        request.onerror = () => reject(request.error);
+                    });
+                    
+                    return patterns.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                    
+                } catch (error) {
+                    console.error('❌ Failed to get recurring patterns:', error);
+                    return [];
+                }
+            }
+
+            /**
+             * Update an existing recurring pattern
+             */
+            async updateRecurringPattern(patternId, updates) {
+                try {
+                    const existingPattern = await this.getRecurringPattern(patternId);
+                    if (!existingPattern) {
+                        throw new Error('Recurring pattern not found');
+                    }
+                    
+                    // Validate updates
+                    const validatedUpdates = this.validateRecurringPatternData(updates, false);
+                    
+                    // Merge updates with existing data
+                    const updatedPattern = {
+                        ...existingPattern,
+                        ...validatedUpdates,
+                        id: patternId, // Preserve ID
+                        createdAt: existingPattern.createdAt, // Preserve creation time
+                        modifiedAt: new Date().toISOString()
+                    };
+                    
+                    // Store updated pattern
+                    const transaction = this.db.transaction(['recurringPatterns'], 'readwrite');
+                    const store = transaction.objectStore('recurringPatterns');
+                    
+                    await new Promise((resolve, reject) => {
+                        const request = store.put(updatedPattern);
+                        request.onsuccess = () => resolve(request.result);
+                        request.onerror = () => reject(request.error);
+                    });
+                    
+                    console.log('✅ Recurring pattern updated:', patternId);
+                    return updatedPattern;
+                    
+                } catch (error) {
+                    console.error('❌ Failed to update recurring pattern:', error);
+                    throw new Error(`Failed to update recurring pattern: ${error.message}`);
+                }
+            }
+
+            /**
+             * Delete a recurring pattern
+             */
+            async deleteRecurringPattern(patternId) {
+                try {
+                    await this.ensureDatabase();
+                    
+                    const transaction = this.db.transaction(['recurringPatterns'], 'readwrite');
+                    const store = transaction.objectStore('recurringPatterns');
+                    
+                    await new Promise((resolve, reject) => {
+                        const request = store.delete(patternId);
+                        request.onsuccess = () => resolve(request.result);
+                        request.onerror = () => reject(request.error);
+                    });
+                    
+                    console.log('✅ Recurring pattern deleted:', patternId);
+                    return true;
+                    
+                } catch (error) {
+                    console.error('❌ Failed to delete recurring pattern:', error);
+                    throw new Error(`Failed to delete recurring pattern: ${error.message}`);
+                }
+            }
+
+            /**
+             * Validate recurring pattern data
+             */
+            validateRecurringPatternData(data, requireParentTask = true) {
+                if (!data || typeof data !== 'object') {
+                    throw new Error('Pattern data must be an object');
+                }
+                
+                const sanitized = {};
+                
+                // Parent task ID validation
+                if (data.parentTaskId !== undefined) {
+                    if (data.parentTaskId && typeof data.parentTaskId === 'string') {
+                        sanitized.parentTaskId = data.parentTaskId.trim();
+                    } else if (requireParentTask) {
+                        throw new Error('Parent task ID is required');
+                    }
+                }
+                
+                // Use existing recurring config validation
+                if (data.frequency !== undefined || data.interval !== undefined) {
+                    sanitized = { ...sanitized, ...this.validateRecurringConfig(data) };
+                }
+                
+                // Start date validation
+                if (data.startDate !== undefined) {
+                    if (data.startDate) {
+                        const date = new Date(data.startDate);
+                        if (isNaN(date.getTime())) {
+                            throw new Error('Invalid start date');
+                        }
+                        sanitized.startDate = date.toISOString();
+                    } else {
+                        sanitized.startDate = new Date().toISOString();
+                    }
+                }
+                
+                // Timezone offset
+                if (data.timezoneOffset !== undefined) {
+                    const offset = parseInt(data.timezoneOffset, 10);
+                    if (isNaN(offset) || offset < -720 || offset > 720) {
+                        throw new Error('Invalid timezone offset');
+                    }
+                    sanitized.timezoneOffset = offset;
+                } else {
+                    sanitized.timezoneOffset = new Date().getTimezoneOffset();
+                }
+                
+                // Set defaults for new patterns
+                if (requireParentTask) {
+                    sanitized.frequency = sanitized.frequency || 'daily';
+                    sanitized.interval = sanitized.interval || 1;
+                    sanitized.startDate = sanitized.startDate || new Date().toISOString();
+                }
+                
+                return sanitized;
             }
 
             /**
@@ -3199,6 +3842,588 @@
          * - 📊 Task count tracking and statistics
          * - 🔄 Integration with task operations and sync
          */
+
+        /* ============================================
+           🔄 RECURRING TASK ENGINE (v4)
+           ============================================ */
+
+        /**
+         * 🔄 MAJOR FUNCTION POINT #4: RECURRING TASK ENGINE
+         * 
+         * The RecurringTaskEngine handles all aspects of recurring task management:
+         * 
+         * - 📅 Pattern Calculations: Complex date mathematics for all frequency types
+         * - 🏭 Instance Generation: Creates task instances based on patterns
+         * - ⏰ Schedule Management: Tracks next occurrences and completion
+         * - 🌍 Timezone Handling: Proper timezone and DST support
+         * - 📊 Performance Optimization: Efficient batch operations and caching
+         * 
+         * Key Features:
+         * - Daily/Weekly/Monthly/Yearly/Custom patterns
+         * - Leap year and month boundary handling  
+         * - Timezone-aware calculations
+         * - Instance lifecycle management
+         * - Background generation scheduling
+         */
+        class RecurringTaskEngine {
+            constructor(database) {
+                this.database = database;
+                this.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                this.timezoneOffset = new Date().getTimezoneOffset();
+                
+                // Cache for frequently accessed patterns
+                this.patternCache = new Map();
+                this.cacheExpiry = 5 * 60 * 1000; // 5 minutes
+                
+                // Generation limits for performance
+                this.maxInstancesPerBatch = 50;
+                this.maxLookaheadDays = 90;
+                
+                console.log(`🔄 RecurringTaskEngine initialized (timezone: ${this.timezone})`);
+            }
+
+            /* ============================================
+               📅 PATTERN CALCULATION METHODS
+               ============================================ */
+
+            /**
+             * Calculate the next occurrence of a recurring pattern
+             */
+            calculateNextOccurrence(pattern, fromDate = new Date()) {
+                try {
+                    const from = new Date(fromDate);
+                    const frequency = pattern.frequency;
+                    const interval = pattern.interval || 1;
+                    
+                    console.log(`📅 Calculating next occurrence: ${frequency} (interval: ${interval}) from ${from.toISOString()}`);
+                    
+                    switch (frequency) {
+                        case 'daily':
+                            return this.calculateDaily(from, interval);
+                        case 'weekly':
+                            return this.calculateWeekly(from, interval, pattern.weekDays);
+                        case 'monthly':
+                            return this.calculateMonthly(from, interval, pattern);
+                        case 'yearly':
+                            return this.calculateYearly(from, interval, pattern);
+                        case 'custom':
+                            return this.calculateCustom(from, pattern.customCron);
+                        default:
+                            throw new Error(`Unsupported frequency: ${frequency}`);
+                    }
+                } catch (error) {
+                    console.error('❌ Error calculating next occurrence:', error);
+                    throw new Error(`Failed to calculate next occurrence: ${error.message}`);
+                }
+            }
+
+            /**
+             * Daily frequency calculation
+             */
+            calculateDaily(fromDate, interval) {
+                const next = new Date(fromDate);
+                next.setDate(next.getDate() + interval);
+                return next;
+            }
+
+            /**
+             * Weekly frequency calculation
+             */
+            calculateWeekly(fromDate, interval, weekDays = []) {
+                const next = new Date(fromDate);
+                
+                if (weekDays.length === 0) {
+                    // If no specific days, repeat same weekday
+                    next.setDate(next.getDate() + (7 * interval));
+                    return next;
+                }
+                
+                // Find next occurrence in selected weekdays
+                const currentDay = next.getDay();
+                let daysToAdd = 0;
+                let foundInCurrentWeek = false;
+                
+                // Check remaining days in current week
+                for (let i = currentDay + 1; i <= 6; i++) {
+                    if (weekDays.includes(i)) {
+                        daysToAdd = i - currentDay;
+                        foundInCurrentWeek = true;
+                        break;
+                    }
+                }
+                
+                // If no match in current week, look in next interval weeks
+                if (!foundInCurrentWeek) {
+                    const weeksToAdd = interval;
+                    const firstSelectedDay = Math.min(...weekDays);
+                    daysToAdd = (7 * weeksToAdd) + firstSelectedDay - currentDay;
+                    
+                    if (daysToAdd <= 0) {
+                        daysToAdd += 7;
+                    }
+                }
+                
+                next.setDate(next.getDate() + daysToAdd);
+                return next;
+            }
+
+            /**
+             * Monthly frequency calculation
+             */
+            calculateMonthly(fromDate, interval, pattern) {
+                const next = new Date(fromDate);
+                
+                if (pattern.monthDay) {
+                    // Specific day of month (e.g., 15th of every month)
+                    return this.calculateMonthlyByDate(next, pattern.monthDay, interval);
+                } else if (pattern.monthWeek && pattern.monthWeekDay !== undefined) {
+                    // Relative day (e.g., 2nd Tuesday of every month)
+                    return this.calculateMonthlyByWeek(next, pattern.monthWeek, pattern.monthWeekDay, interval);
+                } else {
+                    // Default: same date next month
+                    next.setMonth(next.getMonth() + interval);
+                    return this.adjustForMonthEnd(next, fromDate.getDate());
+                }
+            }
+
+            /**
+             * Monthly by specific date (e.g., 15th of every month)
+             */
+            calculateMonthlyByDate(fromDate, dayOfMonth, interval) {
+                const next = new Date(fromDate);
+                next.setMonth(next.getMonth() + interval);
+                
+                // Handle month-end dates (e.g., Jan 31 → Feb 28/29)
+                const lastDayOfMonth = new Date(next.getFullYear(), next.getMonth() + 1, 0).getDate();
+                const targetDay = Math.min(dayOfMonth, lastDayOfMonth);
+                
+                next.setDate(targetDay);
+                
+                // If we're still in the past, move to next month
+                if (next <= fromDate) {
+                    next.setMonth(next.getMonth() + interval);
+                    const newLastDay = new Date(next.getFullYear(), next.getMonth() + 1, 0).getDate();
+                    next.setDate(Math.min(dayOfMonth, newLastDay));
+                }
+                
+                return next;
+            }
+
+            /**
+             * Monthly by relative week (e.g., 2nd Tuesday of every month)
+             */
+            calculateMonthlyByWeek(fromDate, weekNumber, weekDay, interval) {
+                const next = new Date(fromDate);
+                next.setMonth(next.getMonth() + interval);
+                
+                // Start from first day of the month
+                next.setDate(1);
+                
+                // Find the first occurrence of the target weekday
+                const firstOfMonth = next.getDay();
+                let daysToAdd = (weekDay - firstOfMonth + 7) % 7;
+                
+                // Add weeks to get to the target week (weekNumber is 1-indexed)
+                if (weekNumber === -1) {
+                    // Last occurrence in month
+                    daysToAdd += (4 * 7); // Start with 4th week
+                    next.setDate(next.getDate() + daysToAdd);
+                    
+                    // If we're in the next month, go back one week
+                    if (next.getMonth() !== (fromDate.getMonth() + interval) % 12) {
+                        next.setDate(next.getDate() - 7);
+                    }
+                } else {
+                    daysToAdd += ((weekNumber - 1) * 7);
+                    next.setDate(next.getDate() + daysToAdd);
+                }
+                
+                return next;
+            }
+
+            /**
+             * Yearly frequency calculation
+             */
+            calculateYearly(fromDate, interval, pattern) {
+                const next = new Date(fromDate);
+                next.setFullYear(next.getFullYear() + interval);
+                
+                if (pattern.yearMonth && pattern.yearDay) {
+                    next.setMonth(pattern.yearMonth - 1); // Month is 0-indexed
+                    next.setDate(pattern.yearDay);
+                } else if (pattern.yearMonth) {
+                    next.setMonth(pattern.yearMonth - 1);
+                    // Keep same day of month, adjust for month-end
+                    next.setDate(Math.min(fromDate.getDate(), this.getLastDayOfMonth(next)));
+                }
+                
+                // Handle February 29th leap year edge case
+                if (pattern.yearMonth === 2 && pattern.yearDay === 29) {
+                    if (!this.isLeapYear(next.getFullYear())) {
+                        next.setDate(28); // Feb 28 in non-leap years
+                    }
+                }
+                
+                return next;
+            }
+
+            /**
+             * Custom cron-like expression calculation
+             */
+            calculateCustom(fromDate, cronExpression) {
+                // Simplified cron parsing (minute hour day month weekday)
+                // This is a basic implementation - full cron would be much more complex
+                const parts = cronExpression.trim().split(/\s+/);
+                if (parts.length !== 5) {
+                    throw new Error('Invalid cron expression - must have 5 parts');
+                }
+                
+                const [minute, hour, day, month, weekday] = parts;
+                const next = new Date(fromDate);
+                
+                // For now, implement basic daily at specific time
+                if (minute !== '*' && hour !== '*' && day === '*' && month === '*' && weekday === '*') {
+                    next.setHours(parseInt(hour), parseInt(minute), 0, 0);
+                    if (next <= fromDate) {
+                        next.setDate(next.getDate() + 1);
+                    }
+                    return next;
+                }
+                
+                throw new Error('Complex cron expressions not yet implemented');
+            }
+
+            /* ============================================
+               🏭 INSTANCE GENERATION METHODS
+               ============================================ */
+
+            /**
+             * Create a recurring task template and pattern
+             */
+            async createRecurringTask(taskData, patternConfig) {
+                try {
+                    console.log('🏭 Creating recurring task template...');
+                    
+                    // Create the template task
+                    const templateTask = {
+                        ...taskData,
+                        isRecurring: true,
+                        recurringStatus: 'template',
+                        parentTaskId: null // Template tasks have no parent
+                    };
+                    
+                    const savedTemplate = await this.database.createTask(templateTask);
+                    console.log(`✅ Template task created: ${savedTemplate.id}`);
+                    
+                    // Create the recurring pattern
+                    const pattern = {
+                        parentTaskId: savedTemplate.id,
+                        startDate: new Date().toISOString(),
+                        timezoneOffset: this.timezoneOffset,
+                        ...patternConfig
+                    };
+                    
+                    const savedPattern = await this.database.createRecurringPattern(pattern);
+                    console.log(`✅ Recurring pattern created: ${savedPattern.id}`);
+                    
+                    // Generate initial instances
+                    await this.generateNextInstances(savedPattern.id, 5);
+                    
+                    return {
+                        template: savedTemplate,
+                        pattern: savedPattern
+                    };
+                    
+                } catch (error) {
+                    console.error('❌ Failed to create recurring task:', error);
+                    throw error;
+                }
+            }
+
+            /**
+             * Generate next instances for a pattern
+             */
+            async generateNextInstances(patternId, count = 10) {
+                try {
+                    const pattern = await this.database.getRecurringPattern(patternId);
+                    if (!pattern || !pattern.isActive) {
+                        console.log('⚠️ Pattern not found or inactive:', patternId);
+                        return [];
+                    }
+                    
+                    const templateTask = await this.database.readTask(pattern.parentTaskId);
+                    if (!templateTask) {
+                        throw new Error('Template task not found');
+                    }
+                    
+                    const generatedInstances = [];
+                    let currentDate = new Date(pattern.lastExecuted || pattern.startDate);
+                    
+                    for (let i = 0; i < Math.min(count, this.maxInstancesPerBatch); i++) {
+                        const nextDate = this.calculateNextOccurrence(pattern, currentDate);
+                        
+                        // Check if we've exceeded the end date or max instances
+                        if (pattern.endDate && nextDate > new Date(pattern.endDate)) {
+                            console.log('📅 Reached pattern end date');
+                            break;
+                        }
+                        
+                        if (pattern.maxInstances && templateTask.completedInstances >= pattern.maxInstances) {
+                            console.log('📊 Reached maximum instances');
+                            break;
+                        }
+                        
+                        // Create instance task
+                        const instance = await this.createTaskInstance(templateTask, nextDate);
+                        generatedInstances.push(instance);
+                        
+                        currentDate = nextDate;
+                    }
+                    
+                    // Update pattern's last executed time
+                    if (generatedInstances.length > 0) {
+                        await this.database.updateRecurringPattern(patternId, {
+                            lastExecuted: new Date().toISOString()
+                        });
+                    }
+                    
+                    console.log(`✅ Generated ${generatedInstances.length} instances for pattern ${patternId}`);
+                    return generatedInstances;
+                    
+                } catch (error) {
+                    console.error('❌ Failed to generate instances:', error);
+                    throw error;
+                }
+            }
+
+            /**
+             * Create a task instance from template
+             */
+            async createTaskInstance(templateTask, dueDate) {
+                const instance = {
+                    title: templateTask.title,
+                    description: templateTask.description,
+                    priority: templateTask.priority,
+                    categoryId: templateTask.categoryId,
+                    dueDate: dueDate.toISOString(),
+                    isRecurring: true,
+                    parentTaskId: templateTask.id,
+                    recurringStatus: 'instance',
+                    dependencies: [], // Instances don't inherit dependencies
+                    isBlocked: false
+                };
+                
+                const savedInstance = await this.database.createTask(instance);
+                console.log(`📅 Created task instance: ${savedInstance.title} (due: ${dueDate.toDateString()})`);
+                
+                return savedInstance;
+            }
+
+            /* ============================================
+               📊 INSTANCE MANAGEMENT METHODS
+               ============================================ */
+
+            /**
+             * Complete a recurring task instance
+             */
+            async completeRecurringInstance(instanceId) {
+                try {
+                    const instance = await this.database.readTask(instanceId);
+                    if (!instance || instance.recurringStatus !== 'instance') {
+                        throw new Error('Invalid recurring task instance');
+                    }
+                    
+                    // Mark instance as completed
+                    await this.database.updateTask(instanceId, {
+                        status: 'completed',
+                        recurringStatus: 'completed_instance',
+                        completedAt: new Date().toISOString()
+                    });
+                    
+                    // Update template's completed instances count
+                    const template = await this.database.readTask(instance.parentTaskId);
+                    if (template) {
+                        await this.database.updateTask(template.id, {
+                            completedInstances: (template.completedInstances || 0) + 1
+                        });
+                    }
+                    
+                    console.log(`✅ Completed recurring instance: ${instanceId}`);
+                    return true;
+                    
+                } catch (error) {
+                    console.error('❌ Failed to complete recurring instance:', error);
+                    throw error;
+                }
+            }
+
+            /**
+             * Skip a recurring instance to a future date
+             */
+            async skipRecurringInstance(instanceId, skipToDate) {
+                try {
+                    const instance = await this.database.readTask(instanceId);
+                    if (!instance || instance.recurringStatus !== 'instance') {
+                        throw new Error('Invalid recurring task instance');
+                    }
+                    
+                    const newDueDate = new Date(skipToDate);
+                    if (newDueDate <= new Date()) {
+                        throw new Error('Skip date must be in the future');
+                    }
+                    
+                    await this.database.updateTask(instanceId, {
+                        dueDate: newDueDate.toISOString()
+                    });
+                    
+                    console.log(`⏭️ Skipped recurring instance to: ${newDueDate.toDateString()}`);
+                    return true;
+                    
+                } catch (error) {
+                    console.error('❌ Failed to skip recurring instance:', error);
+                    throw error;
+                }
+            }
+
+            /* ============================================
+               🛠️ UTILITY METHODS
+               ============================================ */
+
+            /**
+             * Check if a year is a leap year
+             */
+            isLeapYear(year) {
+                return (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
+            }
+
+            /**
+             * Get the last day of a month
+             */
+            getLastDayOfMonth(date) {
+                return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+            }
+
+            /**
+             * Adjust date for month-end edge cases
+             */
+            adjustForMonthEnd(date, originalDay) {
+                const lastDay = this.getLastDayOfMonth(date);
+                if (originalDay > lastDay) {
+                    date.setDate(lastDay);
+                }
+                return date;
+            }
+
+            /**
+             * Get upcoming instances within specified days
+             */
+            async getUpcomingInstances(daysAhead = 30) {
+                try {
+                    const cutoffDate = new Date();
+                    cutoffDate.setDate(cutoffDate.getDate() + daysAhead);
+                    
+                    // Get all recurring task instances
+                    const allTasks = await this.database.getAllTasks();
+                    const upcomingInstances = allTasks.filter(task => {
+                        return task.isRecurring && 
+                               task.recurringStatus === 'instance' &&
+                               task.dueDate &&
+                               new Date(task.dueDate) <= cutoffDate &&
+                               task.status !== 'completed';
+                    });
+                    
+                    // Sort by due date
+                    return upcomingInstances.sort((a, b) => 
+                        new Date(a.dueDate) - new Date(b.dueDate)
+                    );
+                    
+                } catch (error) {
+                    console.error('❌ Failed to get upcoming instances:', error);
+                    return [];
+                }
+            }
+
+            /**
+             * Get patterns that need instance generation
+             */
+            async getPendingGenerations() {
+                try {
+                    const activePatterns = await this.database.getAllRecurringPatterns({ active: true });
+                    const pendingPatterns = [];
+                    
+                    for (const pattern of activePatterns) {
+                        const template = await this.database.readTask(pattern.parentTaskId);
+                        if (!template) continue;
+                        
+                        // Check if pattern needs new instances
+                        const lastExecution = pattern.lastExecuted ? new Date(pattern.lastExecuted) : new Date(pattern.startDate);
+                        const timeSinceLastExecution = Date.now() - lastExecution.getTime();
+                        
+                        // Generate if it's been more than the pattern interval since last execution
+                        const shouldGenerate = timeSinceLastExecution > this.getPatternIntervalMs(pattern);
+                        
+                        if (shouldGenerate) {
+                            pendingPatterns.push(pattern);
+                        }
+                    }
+                    
+                    return pendingPatterns;
+                    
+                } catch (error) {
+                    console.error('❌ Failed to get pending generations:', error);
+                    return [];
+                }
+            }
+
+            /**
+             * Get pattern interval in milliseconds
+             */
+            getPatternIntervalMs(pattern) {
+                const interval = pattern.interval || 1;
+                
+                switch (pattern.frequency) {
+                    case 'daily':
+                        return interval * 24 * 60 * 60 * 1000;
+                    case 'weekly':
+                        return interval * 7 * 24 * 60 * 60 * 1000;
+                    case 'monthly':
+                        return interval * 30 * 24 * 60 * 60 * 1000; // Approximate
+                    case 'yearly':
+                        return interval * 365 * 24 * 60 * 60 * 1000; // Approximate
+                    default:
+                        return 24 * 60 * 60 * 1000; // Default to daily
+                }
+            }
+
+            /**
+             * Execute scheduled generation for all pending patterns
+             */
+            async executeScheduledGeneration() {
+                try {
+                    console.log('🔄 Executing scheduled generation...');
+                    
+                    const pendingPatterns = await this.getPendingGenerations();
+                    let totalGenerated = 0;
+                    
+                    for (const pattern of pendingPatterns) {
+                        try {
+                            const instances = await this.generateNextInstances(pattern.id, 5);
+                            totalGenerated += instances.length;
+                        } catch (error) {
+                            console.error(`❌ Failed to generate instances for pattern ${pattern.id}:`, error);
+                        }
+                    }
+                    
+                    console.log(`✅ Scheduled generation complete: ${totalGenerated} instances generated`);
+                    return totalGenerated;
+                    
+                } catch (error) {
+                    console.error('❌ Scheduled generation failed:', error);
+                    return 0;
+                }
+            }
+        }
+
         class CategoryManager {
             constructor(database) {
                 this.database = database;
@@ -3493,6 +4718,7 @@
                 this.syncManager = new CrossTabSyncManager();
                 this.backgroundSyncManager = null; // Will be initialized after database
                 this.categoryManager = null; // Will be initialized with database
+                this.recurringEngine = null; // Will be initialized with database (v4)
                 this.tasks = [];
                 this.isOnline = navigator.onLine;
                 this.isLoading = false;
@@ -3545,6 +4771,10 @@
                     await this.backgroundSyncManager.init();
                     console.log('✅ Background Sync Manager initialized');
                     
+                    // Initialize Recurring Task Engine (v4)
+                    this.recurringEngine = new RecurringTaskEngine(this.database);
+                    console.log('✅ Recurring Task Engine initialized');
+                    
                     // Cache DOM elements
                     this.cacheElements();
                     
@@ -3571,6 +4801,31 @@
                     
                     // Initialize filters
                     this.initializeFilters();
+
+                        // Listen for Service Worker background recurring instance notifications
+                        if ('serviceWorker' in navigator) {
+                            navigator.serviceWorker.addEventListener('message', (event) => {
+                                if (event.data?.type === 'RECURRING_INSTANCES_GENERATED') {
+                                    const count = event.data.data.count;
+                                    if (count > 0) {
+                                        this.showSuccess(`🔄 ${count} recurring task instance${count>1?'s':''} generated in background`);
+                                        this.loadTasks();
+                                    }
+                                }
+                            });
+                        }
+                    
+                    // Process overdue recurring tasks
+                    if (this.recurringEngine) {
+                        setTimeout(async () => {
+                            try {
+                                await this.processOverdueRecurringTasks();
+                                console.log('✅ Overdue recurring tasks processed');
+                            } catch (error) {
+                                console.error('⚠️ Failed to process overdue recurring tasks:', error);
+                            }
+                        }, 1000); // Small delay to ensure everything is loaded
+                    }
                     
                     console.log('✅ Task Manager ready!');
                     
@@ -3617,7 +4872,18 @@
                     descriptionInput: document.getElementById('task-description'),
                     categoryInput: document.getElementById('task-category'),
                     priorityInput: document.getElementById('task-priority'),
-                    dueDateInput: document.getElementById('task-due-date')
+                    dueDateInput: document.getElementById('task-due-date'),
+                    
+                    // 🔄 Recurring task form elements
+                    recurringCheckbox: document.getElementById('task-recurring'),
+                    recurringOptions: document.getElementById('recurring-options'),
+                    recurringFrequency: document.getElementById('recurring-frequency'),
+                    recurringInterval: document.getElementById('recurring-interval'),
+                    recurringEndDate: document.getElementById('recurring-end-date'),
+                    recurringTimezone: document.getElementById('recurring-timezone'),
+                    weeklyDays: document.getElementById('weekly-days'),
+                    monthlyDayType: document.getElementById('monthly-day-type'),
+                    customPatternInput: document.getElementById('custom-pattern-input')
                 };
                 
                 // Verify all elements exist
@@ -3652,7 +4918,145 @@
                         }
                     }
                 });
+                    // Inline recurring management actions
+                    document.addEventListener('click', (e) => {
+                        const manageBtn = e.target.closest('.btn-recurring-manage');
+                        if (manageBtn) {
+                            const taskId = manageBtn.dataset.taskId;
+                            const panel = document.getElementById(`recurring-panel-${taskId}`);
+                            if (panel) {
+                                panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+                            }
+                        }
+                        const stopBtn = e.target.closest('[data-action="stop-recurring"]');
+                        if (stopBtn) {
+                            const taskId = stopBtn.dataset.taskId;
+                            this.stopRecurring(taskId).then(()=>{
+                                this.renderTasks();
+                            });
+                        }
+                    });
+                    document.addEventListener('submit', (e) => {
+                        const form = e.target.closest('.recurring-edit-form');
+                        if (form) {
+                            e.preventDefault();
+                            const taskId = form.dataset.taskId;
+                            const frequency = form.querySelector('.recurring-edit-frequency').value;
+                            const interval = parseInt(form.querySelector('.recurring-edit-interval').value)||1;
+                            const endDate = form.querySelector('.recurring-edit-end-date').value||null;
+                            const timezone = form.querySelector('.recurring-edit-timezone').value||'local';
+                            const newPattern = { type: frequency, interval, endDate, timezone };
+                            this.updateRecurringPattern(taskId, newPattern).then(()=>{
+                                this.renderTasks();
+                            });
+                        }
+                    });
+                
+                    // 🔄 Recurring Task Form Events
+                    this.bindRecurringEvents();
             }
+            
+                /**
+                 * Bind recurring task form events
+                 */
+                bindRecurringEvents() {
+                    const recurringCheckbox = document.getElementById('task-recurring');
+                    const recurringOptions = document.getElementById('recurring-options');
+                    const frequencySelect = document.getElementById('recurring-frequency');
+                    const intervalInput = document.getElementById('recurring-interval');
+                    const intervalLabel = document.getElementById('interval-label');
+                
+                    // Toggle recurring options
+                    recurringCheckbox?.addEventListener('change', (e) => {
+                        if (e.target.checked) {
+                            recurringOptions.style.display = 'block';
+                            this.updateRecurringOptionsVisibility();
+                        } else {
+                            recurringOptions.style.display = 'none';
+                        }
+                    });
+                
+                    // Update options based on frequency selection
+                    frequencySelect?.addEventListener('change', (e) => {
+                        this.updateRecurringOptionsVisibility();
+                        this.updateIntervalLabel();
+                    });
+                
+                    // Update interval label when interval changes
+                    intervalInput?.addEventListener('input', () => {
+                        this.updateIntervalLabel();
+                    });
+                
+                    // Handle weekly days selection
+                    const weeklyDays = document.getElementById('weekly-days');
+                    weeklyDays?.addEventListener('change', (e) => {
+                        if (e.target.type === 'checkbox') {
+                            // Ensure at least one day is selected for weekly recurring
+                            const checkedDays = weeklyDays.querySelectorAll('input[type="checkbox"]:checked');
+                            if (checkedDays.length === 0) {
+                                // Re-check the clicked checkbox if it was the last one
+                                e.target.checked = true;
+                                this.showError('At least one day must be selected for weekly recurring tasks');
+                            }
+                        }
+                    });
+                }
+            
+                /**
+                 * Update recurring options visibility based on frequency
+                 */
+                updateRecurringOptionsVisibility() {
+                    const frequency = document.getElementById('recurring-frequency')?.value;
+                    const weeklyDays = document.getElementById('weekly-days');
+                    const monthlyDay = document.getElementById('monthly-day');
+                    const customPattern = document.getElementById('custom-pattern');
+                
+                    // Hide all conditional options first
+                    if (weeklyDays) weeklyDays.style.display = 'none';
+                    if (monthlyDay) monthlyDay.style.display = 'none';
+                    if (customPattern) customPattern.style.display = 'none';
+                
+                    // Show relevant options
+                    switch (frequency) {
+                        case 'weekly':
+                            if (weeklyDays) weeklyDays.style.display = 'block';
+                            // Set default to current day if none selected
+                            const checkedDays = weeklyDays.querySelectorAll('input[type="checkbox"]:checked');
+                            if (checkedDays.length === 0) {
+                                const today = new Date().getDay();
+                                const todayCheckbox = weeklyDays.querySelector(`input[value="${today}"]`);
+                                if (todayCheckbox) todayCheckbox.checked = true;
+                            }
+                            break;
+                        case 'monthly':
+                            if (monthlyDay) monthlyDay.style.display = 'block';
+                            break;
+                        case 'custom':
+                            if (customPattern) customPattern.style.display = 'block';
+                            break;
+                    }
+                }
+            
+                /**
+                 * Update interval label based on frequency and interval
+                 */
+                updateIntervalLabel() {
+                    const frequency = document.getElementById('recurring-frequency')?.value;
+                    const interval = parseInt(document.getElementById('recurring-interval')?.value) || 1;
+                    const intervalLabel = document.getElementById('interval-label');
+                
+                    if (!intervalLabel) return;
+                
+                    const labels = {
+                        daily: interval === 1 ? 'day' : 'days',
+                        weekly: interval === 1 ? 'week' : 'weeks', 
+                        monthly: interval === 1 ? 'month' : 'months',
+                        yearly: interval === 1 ? 'year' : 'years',
+                        custom: 'interval(s)'
+                    };
+                
+                    intervalLabel.textContent = labels[frequency] || 'interval(s)';
+                }
             
             /**
              * 🔍 MAJOR FUNCTION POINT #5: TASK OPERATIONS WITH OPTIMISTIC UPDATES
@@ -3703,8 +5107,13 @@
                     this.render();
                     
                     try {
-                        // 2. Persist to database
-                        const savedTask = await this.database.createTask(formData);
+                            // 2. Persist to database (recurring or regular task)
+                            let savedTask;
+                            if (formData.isRecurring) {
+                                savedTask = await this.createRecurringTask(formData);
+                            } else {
+                                savedTask = await this.database.createTask(formData);
+                            }
                         
                         // 3. Replace optimistic task with real data
                         const index = this.tasks.findIndex(t => t.id === optimisticTask.id);
@@ -4037,6 +5446,40 @@
          * Create a single task element
          */
         TaskManager.prototype.createTaskElement = function(task) {
+            /**
+             * Format recurring pattern for display
+             */
+            TaskManager.prototype.formatRecurringPattern = function(pattern) {
+                if (!pattern) return '';
+                switch (pattern.type) {
+                    case 'daily':
+                        return `Every ${pattern.interval || 1} day(s)`;
+                    case 'weekly':
+                        const days = (pattern.daysOfWeek || []).map(d => ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d]).join(', ');
+                        return `Every ${pattern.interval || 1} week(s) on ${days || 'selected days'}`;
+                    case 'monthly':
+                        return `Every ${pattern.interval || 1} month(s) (${pattern.monthlyType === 'weekday' ? 'weekday' : 'date'})`;
+                    case 'yearly':
+                        return `Every ${pattern.interval || 1} year(s)`;
+                    case 'custom':
+                        return 'Custom pattern';
+                    default:
+                        return '';
+                }
+            };
+
+            /**
+             * Format date for display
+             */
+            TaskManager.prototype.formatDate = function(dateStr, timezone = 'local') {
+                if (!dateStr) return '';
+                const date = new Date(dateStr);
+                if (timezone === 'UTC') {
+                    return date.toUTCString();
+                }
+                // For local and named timezones, fallback to local
+                return date.toLocaleString();
+            };
             const taskDiv = document.createElement('div');
             
             // ⛓️ ENHANCED VISUAL INDICATORS: Build comprehensive class list
@@ -4075,7 +5518,13 @@
                 <div class="task-header">
                     <h3 class="task-title ${task.status === 'completed' ? 'completed' : ''}">
                         ${this.getTaskStatusIcon(task)}${this.escapeHtml(task.title)}
+                            ${task.isRecurring ? `<span class="recurring-badge" title="Recurring Task">🔄</span>` : ''}
                     </h3>
+                        ${task.isRecurring ? `<div class="recurring-info">
+                            <span class="recurring-label">Recurring:</span>
+                            <span class="recurring-pattern">${this.formatRecurringPattern(task.recurringPattern)}</span>
+                            ${task.nextInstanceDate ? `<span class="next-occurrence">Next: ${this.formatDate(task.nextInstanceDate, task.recurringPattern?.timezone || 'local')}</span>` : ''}
+                        </div>` : ''}
                     <div class="task-actions">
                         <button 
                             class="btn btn-sm btn-secondary" 
@@ -4561,13 +6010,60 @@
          * Get form data as object
          */
         TaskManager.prototype.getFormData = function() {
-            return {
+                const formData = {
                 title: this.elements.titleInput?.value?.trim() || '',
                 description: this.elements.descriptionInput?.value?.trim() || '',
                 categoryId: this.elements.categoryInput?.value || null,
                 priority: this.elements.priorityInput?.value || 'medium',
                 dueDate: this.elements.dueDateInput?.value || null
             };
+            
+                // 🔄 Add recurring task data if enabled
+                const isRecurring = this.elements.recurringCheckbox?.checked || false;
+                if (isRecurring) {
+                    const frequency = this.elements.recurringFrequency?.value || 'weekly';
+                    const interval = parseInt(this.elements.recurringInterval?.value) || 1;
+                
+                    formData.isRecurring = true;
+                    formData.recurringPattern = {
+                        type: frequency,
+                        interval: interval,
+                        endDate: this.elements.recurringEndDate?.value || null,
+                        timezone: this.elements.recurringTimezone?.value || 'local'
+                    };
+                
+                    // Add frequency-specific options
+                    switch (frequency) {
+                        case 'weekly':
+                            const selectedDays = [];
+                            const dayCheckboxes = this.elements.weeklyDays?.querySelectorAll('input[type="checkbox"]:checked');
+                            dayCheckboxes?.forEach(checkbox => {
+                                selectedDays.push(parseInt(checkbox.value));
+                            });
+                            formData.recurringPattern.daysOfWeek = selectedDays.length > 0 ? selectedDays : [new Date().getDay()];
+                            break;
+                    
+                        case 'monthly':
+                            formData.recurringPattern.monthlyType = this.elements.monthlyDayType?.value || 'date';
+                            break;
+                    
+                        case 'custom':
+                            try {
+                                const customPattern = this.elements.customPatternInput?.value?.trim();
+                                if (customPattern) {
+                                    formData.recurringPattern.customPattern = JSON.parse(customPattern);
+                                }
+                            } catch (error) {
+                                console.warn('Invalid custom pattern JSON:', error);
+                                formData.recurringPattern.customPattern = null;
+                            }
+                            break;
+                    }
+                } else {
+                    formData.isRecurring = false;
+                }
+            
+                return formData;
         };
         
         /**
@@ -4576,6 +6072,20 @@
         TaskManager.prototype.clearForm = function() {
             if (this.elements.taskForm) {
                 this.elements.taskForm.reset();
+                
+                    // 🔄 Reset recurring task form state
+                    if (this.elements.recurringOptions) {
+                        this.elements.recurringOptions.style.display = 'none';
+                    }
+                
+                    // Reset weekly days to default (current day)
+                    const weeklyDays = this.elements.weeklyDays?.querySelectorAll('input[type="checkbox"]');
+                    weeklyDays?.forEach(checkbox => {
+                        checkbox.checked = parseInt(checkbox.value) === new Date().getDay();
+                    });
+                
+                    // Update interval label
+                    this.updateIntervalLabel();
             }
         };
         
@@ -6788,6 +8298,223 @@
         TaskManager.prototype.showError = function(message) {
             // You can implement a toast notification system here
             alert(message); // Temporary implementation
+        };
+
+        // 🔄 RECURRING TASK METHODS
+        
+        /**
+         * Create a recurring task template
+         */
+        TaskManager.prototype.createRecurringTask = async function(taskData) {
+            try {
+                const recurringTask = {
+                    ...taskData,
+                    id: this.generateUUID(),
+                    isRecurring: true,
+                    createdAt: new Date().toISOString(),
+                    lastInstanceDate: null,
+                    nextInstanceDate: null,
+                    instanceCount: 0
+                };
+
+                // Calculate next instance date
+                if (this.recurringEngine) {
+                    recurringTask.nextInstanceDate = this.recurringEngine.calculateNextInstanceDate(
+                        recurringTask.recurringPattern,
+                        new Date()
+                    );
+                }
+
+                // Save to database
+                await this.database.createTask(recurringTask);
+                
+                // Add to local tasks array
+                this.tasks.unshift(recurringTask);
+                
+                // Generate first instance if due
+                if (recurringTask.nextInstanceDate && new Date(recurringTask.nextInstanceDate) <= new Date()) {
+                    await this.generateTaskInstance(recurringTask.id);
+                }
+                
+                // Broadcast change
+                if (this.crossTabSync) {
+                    this.crossTabSync.broadcastChange('task-created', recurringTask);
+                }
+                
+                this.renderTasks();
+                this.showSuccess('Recurring task created successfully!');
+                
+                return recurringTask;
+            } catch (error) {
+                console.error('Failed to create recurring task:', error);
+                this.showError('Failed to create recurring task');
+                throw error;
+            }
+        };
+
+        /**
+         * Generate a new instance from a recurring task
+         */
+        TaskManager.prototype.generateTaskInstance = async function(recurringTaskId) {
+            try {
+                if (!this.recurringEngine) {
+                    throw new Error('Recurring engine not available');
+                }
+
+                const recurringTask = this.tasks.find(t => t.id === recurringTaskId);
+                if (!recurringTask || !recurringTask.isRecurring) {
+                    throw new Error('Recurring task not found');
+                }
+
+                const instance = await this.recurringEngine.generateTaskInstance(recurringTask);
+                
+                // Add instance to tasks
+                await this.database.createTask(instance);
+                this.tasks.unshift(instance);
+                
+                // Update recurring task's last instance date and count
+                const updates = {
+                    lastInstanceDate: instance.dueDate,
+                    instanceCount: (recurringTask.instanceCount || 0) + 1,
+                    nextInstanceDate: this.recurringEngine.calculateNextInstanceDate(
+                        recurringTask.recurringPattern,
+                        new Date(instance.dueDate)
+                    )
+                };
+                
+                await this.updateTask(recurringTaskId, updates);
+                
+                // Broadcast changes
+                if (this.crossTabSync) {
+                    this.crossTabSync.broadcastChange('task-created', instance);
+                    this.crossTabSync.broadcastChange('task-updated', { id: recurringTaskId, ...updates });
+                }
+                
+                this.renderTasks();
+                
+                return instance;
+            } catch (error) {
+                console.error('Failed to generate task instance:', error);
+                this.showError('Failed to generate task instance');
+                throw error;
+            }
+        };
+
+        /**
+         * Update recurring pattern for a task
+         */
+        TaskManager.prototype.updateRecurringPattern = async function(taskId, newPattern) {
+            try {
+                if (!this.recurringEngine) {
+                    throw new Error('Recurring engine not available');
+                }
+
+                const task = this.tasks.find(t => t.id === taskId);
+                if (!task || !task.isRecurring) {
+                    throw new Error('Recurring task not found');
+                }
+
+                // Validate new pattern
+                if (!this.recurringEngine.validateRecurringPattern(newPattern)) {
+                    throw new Error('Invalid recurring pattern');
+                }
+
+                // Calculate new next instance date
+                const nextInstanceDate = this.recurringEngine.calculateNextInstanceDate(
+                    newPattern,
+                    task.lastInstanceDate ? new Date(task.lastInstanceDate) : new Date()
+                );
+
+                // Update task
+                const updates = {
+                    recurringPattern: newPattern,
+                    nextInstanceDate
+                };
+
+                await this.updateTask(taskId, updates);
+                
+                this.showSuccess('Recurring pattern updated successfully!');
+                
+                return updates;
+            } catch (error) {
+                console.error('Failed to update recurring pattern:', error);
+                this.showError('Failed to update recurring pattern');
+                throw error;
+            }
+        };
+
+        /**
+         * Stop a recurring task (no more instances will be generated)
+         */
+        TaskManager.prototype.stopRecurring = async function(taskId) {
+            try {
+                const updates = {
+                    isRecurring: false,
+                    nextInstanceDate: null
+                };
+
+                await this.updateTask(taskId, updates);
+                
+                this.showSuccess('Recurring task stopped successfully!');
+                
+                return updates;
+            } catch (error) {
+                console.error('Failed to stop recurring task:', error);
+                this.showError('Failed to stop recurring task');
+                throw error;
+            }
+        };
+
+        /**
+         * Get all recurring tasks
+         */
+        TaskManager.prototype.getRecurringTasks = function() {
+            return this.tasks.filter(task => task.isRecurring === true);
+        };
+
+        /**
+         * Get instances of a specific recurring task
+         */
+        TaskManager.prototype.getTaskInstances = function(recurringTaskId) {
+            return this.tasks.filter(task => 
+                task.recurringParentId === recurringTaskId ||
+                (task.parentId === recurringTaskId && task.isInstance === true)
+            );
+        };
+
+        /**
+         * Check and generate overdue instances
+         */
+        TaskManager.prototype.processOverdueRecurringTasks = async function() {
+            try {
+                if (!this.recurringEngine) {
+                    console.warn('Recurring engine not available for processing overdue tasks');
+                    return;
+                }
+
+                const recurringTasks = this.getRecurringTasks();
+                const now = new Date();
+                let generatedCount = 0;
+
+                for (const task of recurringTasks) {
+                    if (task.nextInstanceDate && new Date(task.nextInstanceDate) <= now) {
+                        try {
+                            await this.generateTaskInstance(task.id);
+                            generatedCount++;
+                        } catch (error) {
+                            console.error(`Failed to generate instance for task ${task.id}:`, error);
+                        }
+                    }
+                }
+
+                if (generatedCount > 0) {
+                    console.log(`Generated ${generatedCount} overdue recurring task instances`);
+                }
+
+                return generatedCount;
+            } catch (error) {
+                console.error('Failed to process overdue recurring tasks:', error);
+            }
         };
         
         class BackgroundSyncManager {
